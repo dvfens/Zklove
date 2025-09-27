@@ -157,48 +157,79 @@ export default function VerificationScreen({ onComplete, onCancel }: Verificatio
     </ThemedView>
   );
 
-  const renderProcessingScreen = () => (
-    <ThemedView style={styles.container}>
-      <View style={styles.processingContainer}>
-        <View style={styles.processingIcon}>
-          <Ionicons name="sync" size={60} color="#007AFF" />
-        </View>
-        <ThemedText style={styles.processingTitle}>Verifying Identity</ThemedText>
-        <ThemedText style={styles.processingSubtitle}>
-          Please wait while we process your verification...
-        </ThemedText>
+  const renderProcessingScreen = () => {
+    const session = verificationService.getCurrentSession();
+    const status = session?.status || 'processing';
+    
+    return (
+      <ThemedView style={styles.container}>
+        <View style={styles.processingContainer}>
+          <View style={styles.processingIcon}>
+            <Ionicons name="sync" size={60} color="#007AFF" />
+          </View>
+          <ThemedText style={styles.processingTitle}>
+            {status === 'generating_proof' ? 'Generating ZK Proof' : 
+             status === 'proof_generated' ? 'Proof Generated' :
+             status === 'blockchain_submitted' ? 'Submitting to Blockchain' :
+             'Verifying Identity'}
+          </ThemedText>
+          <ThemedText style={styles.processingSubtitle}>
+            {status === 'generating_proof' ? 'Creating zero-knowledge proof for privacy-preserving verification...' :
+             status === 'proof_generated' ? 'Zero-knowledge proof generated successfully!' :
+             status === 'blockchain_submitted' ? 'Submitting verification to decentralized network...' :
+             'Please wait while we process your verification...'}
+          </ThemedText>
 
-        <View style={styles.processingSteps}>
-          <View style={styles.processingStep}>
-            <Ionicons 
-              name={faceResult ? "checkmark-circle" : "ellipse-outline"} 
-              size={20} 
-              color={faceResult ? "#34C759" : "#666"} 
-            />
-            <ThemedText style={styles.processingStepText}>Face verification complete</ThemedText>
-          </View>
-          
-          <View style={styles.processingStep}>
-            <Ionicons 
-              name={idResult ? "checkmark-circle" : "ellipse-outline"} 
-              size={20} 
-              color={idResult ? "#34C759" : "#666"} 
-            />
-            <ThemedText style={styles.processingStepText}>ID document processed</ThemedText>
-          </View>
-          
-          <View style={styles.processingStep}>
-            <Ionicons 
-              name={finalResult ? "checkmark-circle" : "ellipse-outline"} 
-              size={20} 
-              color={finalResult ? "#34C759" : "#666"} 
-            />
-            <ThemedText style={styles.processingStepText}>Cross-verification analysis</ThemedText>
+          <View style={styles.processingSteps}>
+            <View style={styles.processingStep}>
+              <Ionicons 
+                name={faceResult ? "checkmark-circle" : "ellipse-outline"} 
+                size={20} 
+                color={faceResult ? "#34C759" : "#666"} 
+              />
+              <ThemedText style={styles.processingStepText}>Face verification complete</ThemedText>
+            </View>
+            
+            <View style={styles.processingStep}>
+              <Ionicons 
+                name={idResult ? "checkmark-circle" : "ellipse-outline"} 
+                size={20} 
+                color={idResult ? "#34C759" : "#666"} 
+              />
+              <ThemedText style={styles.processingStepText}>ID document processed</ThemedText>
+            </View>
+            
+            <View style={styles.processingStep}>
+              <Ionicons 
+                name={status === 'generating_proof' || status === 'proof_generated' || status === 'blockchain_submitted' ? "checkmark-circle" : "ellipse-outline"} 
+                size={20} 
+                color={status === 'generating_proof' || status === 'proof_generated' || status === 'blockchain_submitted' ? "#34C759" : "#666"} 
+              />
+              <ThemedText style={styles.processingStepText}>Zero-knowledge proof generation</ThemedText>
+            </View>
+
+            <View style={styles.processingStep}>
+              <Ionicons 
+                name={status === 'blockchain_submitted' ? "checkmark-circle" : "ellipse-outline"} 
+                size={20} 
+                color={status === 'blockchain_submitted' ? "#34C759" : "#666"} 
+              />
+              <ThemedText style={styles.processingStepText}>Blockchain verification</ThemedText>
+            </View>
+            
+            <View style={styles.processingStep}>
+              <Ionicons 
+                name={finalResult ? "checkmark-circle" : "ellipse-outline"} 
+                size={20} 
+                color={finalResult ? "#34C759" : "#666"} 
+              />
+              <ThemedText style={styles.processingStepText}>Decentralized identity created</ThemedText>
+            </View>
           </View>
         </View>
-      </View>
-    </ThemedView>
-  );
+      </ThemedView>
+    );
+  };
 
   const renderResultScreen = () => {
     if (!finalResult) return null;
@@ -264,15 +295,95 @@ export default function VerificationScreen({ onComplete, onCancel }: Verificatio
 
             <View style={styles.resultItem}>
               <Ionicons 
-                name={idResult && idResult.faceMatch && idResult.faceMatch > 0.7 ? "checkmark" : "close"} 
+                name={finalResult.zkProof ? "checkmark" : "close"} 
                 size={20} 
-                color={idResult && idResult.faceMatch && idResult.faceMatch > 0.7 ? "#34C759" : "#FF3B30"} 
+                color={finalResult.zkProof ? "#34C759" : "#FF3B30"} 
               />
               <ThemedText style={styles.resultItemText}>
-                Face Match: {idResult?.faceMatch ? Math.round(idResult.faceMatch * 100) : 0}%
+                Zero-Knowledge Proof: {finalResult.zkProof ? "Generated" : "Failed"}
+              </ThemedText>
+            </View>
+
+            <View style={styles.resultItem}>
+              <Ionicons 
+                name={finalResult.blockchainTxHash ? "checkmark" : "close"} 
+                size={20} 
+                color={finalResult.blockchainTxHash ? "#34C759" : "#FF3B30"} 
+              />
+              <ThemedText style={styles.resultItemText}>
+                Blockchain Verified: {finalResult.blockchainTxHash ? "Yes" : "Local Only"}
               </ThemedText>
             </View>
           </View>
+
+          {/* ZK Proof Information */}
+          {finalResult.zkProof && (
+            <View style={styles.zkProofInfo}>
+              <ThemedText style={styles.resultSectionTitle}>Zero-Knowledge Proof</ThemedText>
+              <View style={styles.dataItem}>
+                <ThemedText style={styles.dataLabel}>Proof Hash:</ThemedText>
+                <ThemedText style={styles.dataValue} numberOfLines={1}>
+                  {finalResult.zkProof.proofHash.substring(0, 20)}...
+                </ThemedText>
+              </View>
+              <View style={styles.dataItem}>
+                <ThemedText style={styles.dataLabel}>Commitment:</ThemedText>
+                <ThemedText style={styles.dataValue} numberOfLines={1}>
+                  {finalResult.zkProof.commitmentHash.substring(0, 20)}...
+                </ThemedText>
+              </View>
+              <View style={styles.dataItem}>
+                <ThemedText style={styles.dataLabel}>Privacy:</ThemedText>
+                <ThemedText style={styles.dataValue}>
+                  Zero-knowledge (no personal data revealed)
+                </ThemedText>
+              </View>
+            </View>
+          )}
+
+          {/* Decentralized Identity */}
+          {finalResult.decentralizedIdentity && (
+            <View style={styles.didInfo}>
+              <ThemedText style={styles.resultSectionTitle}>Decentralized Identity</ThemedText>
+              <View style={styles.dataItem}>
+                <ThemedText style={styles.dataLabel}>DID:</ThemedText>
+                <ThemedText style={styles.dataValue} numberOfLines={1}>
+                  {finalResult.decentralizedIdentity.did}
+                </ThemedText>
+              </View>
+              <View style={styles.dataItem}>
+                <ThemedText style={styles.dataLabel}>Created:</ThemedText>
+                <ThemedText style={styles.dataValue}>
+                  {new Date(finalResult.decentralizedIdentity.metadata.created).toLocaleDateString()}
+                </ThemedText>
+              </View>
+              <View style={styles.dataItem}>
+                <ThemedText style={styles.dataLabel}>Status:</ThemedText>
+                <ThemedText style={styles.dataValue}>Active & Verified</ThemedText>
+              </View>
+            </View>
+          )}
+
+          {/* Blockchain Transaction */}
+          {finalResult.blockchainTxHash && (
+            <View style={styles.blockchainInfo}>
+              <ThemedText style={styles.resultSectionTitle}>Blockchain Record</ThemedText>
+              <View style={styles.dataItem}>
+                <ThemedText style={styles.dataLabel}>Transaction:</ThemedText>
+                <ThemedText style={styles.dataValue} numberOfLines={1}>
+                  {finalResult.blockchainTxHash.substring(0, 20)}...
+                </ThemedText>
+              </View>
+              <View style={styles.dataItem}>
+                <ThemedText style={styles.dataLabel}>Network:</ThemedText>
+                <ThemedText style={styles.dataValue}>Polygon Mainnet</ThemedText>
+              </View>
+              <View style={styles.dataItem}>
+                <ThemedText style={styles.dataLabel}>Immutable:</ThemedText>
+                <ThemedText style={styles.dataValue}>Permanently recorded</ThemedText>
+              </View>
+            </View>
+          )}
 
           {idResult?.extractedData && (
             <View style={styles.extractedData}>
@@ -495,6 +606,30 @@ const styles = StyleSheet.create({
     padding: 20,
     borderRadius: 10,
     marginBottom: 20,
+  },
+  zkProofInfo: {
+    backgroundColor: '#F0F8FF',
+    padding: 20,
+    borderRadius: 10,
+    marginBottom: 20,
+    borderLeftWidth: 4,
+    borderLeftColor: '#007AFF',
+  },
+  didInfo: {
+    backgroundColor: '#F0FFF4',
+    padding: 20,
+    borderRadius: 10,
+    marginBottom: 20,
+    borderLeftWidth: 4,
+    borderLeftColor: '#34C759',
+  },
+  blockchainInfo: {
+    backgroundColor: '#FFF8F0',
+    padding: 20,
+    borderRadius: 10,
+    marginBottom: 20,
+    borderLeftWidth: 4,
+    borderLeftColor: '#FF9500',
   },
   dataItem: {
     flexDirection: 'row',

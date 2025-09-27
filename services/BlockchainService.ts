@@ -65,14 +65,12 @@ class BlockchainService {
       // Get or create wallet
       let privateKey = await AsyncStorage.getItem('zkLove_wallet_key');
       if (!privateKey) {
-        this.wallet = ethers.Wallet.createRandom();
-        privateKey = this.wallet.privateKey;
+        const randomWallet = ethers.Wallet.createRandom();
+        privateKey = randomWallet.privateKey;
         await AsyncStorage.setItem('zkLove_wallet_key', privateKey);
-      } else {
-        this.wallet = new ethers.Wallet(privateKey);
       }
       
-      this.wallet = this.wallet.connect(this.provider);
+      this.wallet = new ethers.Wallet(privateKey, this.provider);
       
       // Initialize contract
       this.contract = new ethers.Contract(

@@ -21,7 +21,7 @@ import {
 import AadhaarVerification from './AadhaarVerification';
 import FaceCapture from './FaceCapture';
 import IDCapture from './IDCapture';
-import SelfProtocolVerification from './SelfProtocolVerification';
+import SelfProtocolVerification from './SelfProtocolVerificationNew';
 
 // const { width } = Dimensions.get('window');
 

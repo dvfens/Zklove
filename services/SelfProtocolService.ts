@@ -149,53 +149,65 @@ class SelfProtocolService {
   }
 
   /**
-   * Authenticate with Aadhaar using Self Protocol
+   * Create verification session with QR code (SDK approach)
    */
-  async authenticateWithAadhaar(aadhaarNumber: string, biometricData?: any): Promise<SelfVerificationResult> {
+  async createVerificationSession(options: {
+    requiredAge?: number;
+    allowedCountries?: string[];
+    requireSanctionsCheck?: boolean;
+    documentTypes?: string[];
+  } = {}): Promise<{
+    sessionId: string;
+    qrCodeData: string;
+    verificationUrl: string;
+    expiresAt: number;
+  }> {
     if (!this.apiKey || !this.secretKey) {
-      throw new Error('Self Protocol API credentials not configured');
+      throw new Error('Self Protocol SDK credentials not configured');
     }
 
     try {
-      const response = await fetch(`${this.endpoint}/aadhaar/authenticate`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${this.apiKey}`,
-          'Content-Type': 'application/json',
-          'X-Self-Secret': this.secretKey
-        },
-        body: JSON.stringify({
-          aadhaarNumber,
-          biometricData,
-          privacyLevel: this.privacyLevel,
-          dataRetentionDays: this.maxRetentionDays
-        })
-      });
+      // Generate session ID
+      const sessionId = await Crypto.randomUUID();
+      const expiresAt = Date.now() + (30 * 60 * 1000); // 30 minutes
 
-      if (!response.ok) {
-        throw new Error(`Aadhaar authentication failed: ${response.status}`);
-      }
-
-      const result = await response.json();
+      // Create QR code data for Self mobile app
+      const qrCodeData = await this.generateQRCodeData(sessionId, options);
       
-      // Convert Self Protocol response to our format
       return {
-        isHuman: result.isHuman,
-        isUnique: result.isUnique,
-        ageVerified: result.ageVerified,
-        countryVerified: result.countryVerified,
-        sanctionsCleared: result.sanctionsCleared,
-        confidenceScore: result.confidenceScore,
-        riskScore: result.riskScore,
-        zkProof: result.zkProof,
-        verificationId: result.verificationId,
-        timestamp: result.timestamp,
-        expiresAt: result.expiresAt
+        sessionId,
+        qrCodeData,
+        verificationUrl: `${this.verificationEndpoint}/verify/${sessionId}`,
+        expiresAt
       };
     } catch (error) {
-      console.error('Aadhaar authentication failed:', error);
+      console.error('Failed to create verification session:', error);
       throw error;
     }
+  }
+
+  /**
+   * Generate QR code data for Self mobile app
+   */
+  private async generateQRCodeData(sessionId: string, options: any): Promise<string> {
+    const qrData = {
+      sessionId,
+      appId: this.apiKey,
+      verificationUrl: `${this.verificationEndpoint}/verify/${sessionId}`,
+      requiredFields: ['name', 'dateOfBirth', 'nationality'],
+      supportedDocuments: options.documentTypes || ['passport', 'aadhaar', 'drivers_license'],
+      privacyLevel: this.privacyLevel,
+      options: {
+        requiredAge: options.requiredAge,
+        allowedCountries: options.allowedCountries,
+        requireSanctionsCheck: options.requireSanctionsCheck
+      },
+      timestamp: Date.now()
+    };
+
+    // Encode QR data
+    const encodedData = JSON.stringify(qrData);
+    return btoa(encodedData); // Base64 encode for QR code
   }
 
   /**

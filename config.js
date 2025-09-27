@@ -161,11 +161,12 @@ export const config = {
   // SELF PROTOCOL CONFIGURATION - Privacy-First Identity Verification
   // =============================================================================
   selfProtocol: {
-    // API Configuration
-    apiKey: SELF_PROTOCOL_API_KEY,
+    // SDK Configuration
+    appId: SELF_PROTOCOL_API_KEY,
     secretKey: SELF_PROTOCOL_SECRET_KEY,
     endpoint: SELF_PROTOCOL_ENDPOINT,
     verificationEndpoint: SELF_PROTOCOL_VERIFICATION_ENDPOINT,
+    qrCodeEndpoint: process.env.SELF_PROTOCOL_QR_ENDPOINT || 'https://qr.selfprotocol.com',
     
     // Privacy Settings
     dataRetentionDays: parseInt(SELF_PROTOCOL_DATA_RETENTION_DAYS),

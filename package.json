@@ -25,6 +25,7 @@
     "crypto-js": "^4.2.0",
     "ethers": "^6.15.0",
     "expo": "~54.0.10",
+    "expo-barcode-scanner": "^13.0.1",
     "expo-camera": "^17.0.8",
     "expo-constants": "~18.0.9",
     "expo-crypto": "^15.0.7",

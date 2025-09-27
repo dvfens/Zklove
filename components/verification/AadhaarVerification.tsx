@@ -1,6 +1,6 @@
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import SelfProtocolService from '@/services/SelfProtocolService';
+import SelfProtocolSDK from '@/services/SelfProtocolSDK';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useState } from 'react';
 import {
@@ -8,7 +8,6 @@ import {
     ScrollView,
     StyleSheet,
     Text,
-    TextInput,
     TouchableOpacity,
     View
 } from 'react-native';
@@ -18,310 +17,358 @@ interface AadhaarVerificationProps {
   onCancel: () => void;
 }
 
+interface AadhaarQRData {
+  uid: string;
+  name: string;
+  gender: string;
+  yob: string;
+  co: string;
+  vtc: string;
+  po: string;
+  dist: string;
+  state: string;
+  pc: string;
+}
+
 export default function AadhaarVerification({ onComplete, onCancel }: AadhaarVerificationProps) {
-  const [aadhaarNumber, setAadhaarNumber] = useState('');
-  const [otp, setOtp] = useState('');
-  const [step, setStep] = useState<'input' | 'otp' | 'verification' | 'result'>('input');
+  const [step, setStep] = useState<'intro' | 'scan' | 'processing' | 'result'>('intro');
   const [isLoading, setIsLoading] = useState(false);
   const [verificationResult, setVerificationResult] = useState<any>(null);
+  const [qrData, setQrData] = useState<AadhaarQRData | null>(null);
 
-  const selfProtocolService = SelfProtocolService.getInstance();
+  const selfProtocolSDK = new SelfProtocolSDK();
 
-  const handleAadhaarSubmit = async () => {
-    if (!aadhaarNumber || aadhaarNumber.length !== 12) {
-      Alert.alert('Invalid Aadhaar', 'Please enter a valid 12-digit Aadhaar number');
-      return;
-    }
-
+  const handleQRCodeScanned = async (qrCodeData: string) => {
     setIsLoading(true);
+    setStep('processing');
+    
     try {
-      // Send OTP through Self Protocol
-      const result = await selfProtocolService.authenticateWithAadhaar(aadhaarNumber);
-      if (result) {
-        setStep('otp');
-      }
-    } catch (error) {
-      console.error('Aadhaar authentication failed:', error);
-      Alert.alert('Authentication Failed', 'Failed to send OTP. Please try again.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleOTPSubmit = async () => {
-    if (!otp || otp.length !== 6) {
-      Alert.alert('Invalid OTP', 'Please enter a valid 6-digit OTP');
-      return;
-    }
-
-    setIsLoading(true);
-    try {
-      // Verify OTP and complete authentication
-      const result = await selfProtocolService.authenticateWithAadhaar(aadhaarNumber, { otp });
+      // Parse QR demographic payload
+      const parsedData = parseAadhaarQR(qrCodeData);
+      setQrData(parsedData);
       
-      if (result.success) {
-        setVerificationResult(result);
+      // Normalize fields (name capitalization, DOB format)
+      const normalizedData = normalizeAadhaarData(parsedData);
+      
+      // Derive nullifier using last-4 + name + DOB + gender (per Self spec)
+      const nullifier = deriveNullifier(normalizedData);
+      
+      // Generate zk-proof for requested disclosures (age, nationality, uniqueness, etc.)
+      const zkProof = await selfProtocolSDK.generateZKProof({
+        demographicData: normalizedData,
+        nullifier: nullifier,
+        requestedDisclosures: ['age', 'nationality', 'uniqueness']
+      });
+      
+      // Verify proof server-side using Self's backend verifier
+      const verificationResult = await selfProtocolSDK.verifyProof(zkProof);
+      
+      if (verificationResult.verified) {
+        setVerificationResult({
+          success: true,
+          attributes: verificationResult.attributes,
+          nullifier: nullifier,
+          zkProof: zkProof,
+          demographicData: normalizedData
+        });
         setStep('result');
       } else {
-        Alert.alert('Verification Failed', result.responseMessage || 'OTP verification failed');
+        Alert.alert('Verification Failed', 'Aadhaar verification failed. Please try again.');
+        setStep('intro');
       }
     } catch (error) {
-      console.error('OTP verification failed:', error);
-      Alert.alert('Verification Failed', 'Failed to verify OTP. Please try again.');
+      console.error('Aadhaar QR verification failed:', error);
+      Alert.alert('Verification Failed', 'Failed to process Aadhaar QR code. Please try again.');
+      setStep('intro');
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleComplete = () => {
-    onComplete(verificationResult);
+  const parseAadhaarQR = (qrData: string): AadhaarQRData => {
+    // Parse mAadhaar QR code or UIDAI PDF QR code
+    // This is a simplified parser - in production, use proper QR parsing library
+    try {
+      const data = JSON.parse(qrData);
+      return {
+        uid: data.uid || '',
+        name: data.name || '',
+        gender: data.gender || '',
+        yob: data.yob || '',
+        co: data.co || '',
+        vtc: data.vtc || '',
+        po: data.po || '',
+        dist: data.dist || '',
+        state: data.state || '',
+        pc: data.pc || ''
+      };
+    } catch (error) {
+      throw new Error('Invalid Aadhaar QR code format');
+    }
   };
 
-  const renderAadhaarInput = () => (
+  const normalizeAadhaarData = (data: AadhaarQRData) => {
+    return {
+      ...data,
+      name: data.name.toUpperCase().trim(),
+      dob: `${data.yob}-01-01`, // Convert year to full date
+      gender: data.gender.toUpperCase(),
+      address: `${data.co}, ${data.vtc}, ${data.po}, ${data.dist}, ${data.state} - ${data.pc}`
+    };
+  };
+
+  const deriveNullifier = (data: any): string => {
+    // Derive nullifier using last-4 + name + DOB + gender (per Self spec)
+    const last4 = data.uid.slice(-4);
+    const nullifierInput = `${last4}${data.name}${data.dob}${data.gender}`;
+    
+    // In production, use proper cryptographic hash
+    return btoa(nullifierInput); // Simplified for demo
+  };
+
+  const renderIntroScreen = () => (
     <ThemedView style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        <View style={styles.header}>
-          <Ionicons name="card" size={80} color="#007AFF" />
-          <ThemedText style={styles.title}>Aadhaar Verification</ThemedText>
-          <ThemedText style={styles.subtitle}>
-            Verify your identity using Aadhaar through Self Protocol
+        <View style={styles.introHeader}>
+          <Ionicons name="qr-code" size={80} color="#007AFF" />
+          <ThemedText style={styles.introTitle}>Aadhaar Verification</ThemedText>
+          <ThemedText style={styles.introSubtitle}>
+            Scan your mAadhaar QR code or UIDAI PDF QR code for instant verification
           </ThemedText>
         </View>
 
-        <View style={styles.formContainer}>
-          <ThemedText style={styles.label}>Aadhaar Number</ThemedText>
-          <TextInput
-            style={styles.input}
-            value={aadhaarNumber}
-            onChangeText={setAadhaarNumber}
-            placeholder="Enter 12-digit Aadhaar number"
-            keyboardType="numeric"
-            maxLength={12}
-            secureTextEntry={false}
-          />
+        <View style={styles.howItWorks}>
+          <ThemedText style={styles.sectionTitle}>How It Works</ThemedText>
           
-          <View style={styles.infoBox}>
-            <Ionicons name="information-circle" size={20} color="#007AFF" />
-            <Text style={styles.infoText}>
-              Your Aadhaar number will be verified through Self Protocol's secure infrastructure. 
-              No personal data is stored or transmitted.
-            </Text>
+          <View style={styles.step}>
+            <View style={styles.stepNumber}>
+              <ThemedText style={styles.stepNumberText}>1</ThemedText>
+            </View>
+            <View style={styles.stepContent}>
+              <ThemedText style={styles.stepTitle}>Scan QR Code</ThemedText>
+              <ThemedText style={styles.stepDescription}>
+                Use your mAadhaar app or scan UIDAI PDF QR code
+              </ThemedText>
+            </View>
+          </View>
+
+          <View style={styles.step}>
+            <View style={styles.stepNumber}>
+              <ThemedText style={styles.stepNumberText}>2</ThemedText>
+            </View>
+            <View style={styles.stepContent}>
+              <ThemedText style={styles.stepTitle}>Parse & Normalize</ThemedText>
+              <ThemedText style={styles.stepDescription}>
+                Extract demographic data and normalize fields
+              </ThemedText>
+            </View>
+          </View>
+
+          <View style={styles.step}>
+            <View style={styles.stepNumber}>
+              <ThemedText style={styles.stepNumberText}>3</ThemedText>
+            </View>
+            <View style={styles.stepContent}>
+              <ThemedText style={styles.stepTitle}>Generate Proof</ThemedText>
+              <ThemedText style={styles.stepDescription}>
+                Create zero-knowledge proof for age, nationality, uniqueness
+              </ThemedText>
+            </View>
+          </View>
+
+          <View style={styles.step}>
+            <View style={styles.stepNumber}>
+              <ThemedText style={styles.stepNumberText}>4</ThemedText>
+            </View>
+            <View style={styles.stepContent}>
+              <ThemedText style={styles.stepTitle}>Verify & Complete</ThemedText>
+              <ThemedText style={styles.stepDescription}>
+                Verify proof and get verification result
+              </ThemedText>
+            </View>
           </View>
         </View>
 
-        <View style={styles.featuresContainer}>
-          <ThemedText style={styles.sectionTitle}>Privacy Features</ThemedText>
-          
-          <View style={styles.feature}>
-            <Ionicons name="shield-checkmark" size={24} color="#34C759" />
-            <View style={styles.featureText}>
-              <ThemedText style={styles.featureTitle}>Zero-Knowledge Proofs</ThemedText>
-              <ThemedText style={styles.featureDescription}>
-                Verify identity without revealing personal information
-              </ThemedText>
-            </View>
-          </View>
-
-          <View style={styles.feature}>
-            <Ionicons name="lock-closed" size={24} color="#34C759" />
-            <View style={styles.featureText}>
-              <ThemedText style={styles.featureTitle}>Privacy-Preserving</ThemedText>
-              <ThemedText style={styles.featureDescription}>
-                Only boolean proofs are generated, no raw data exposed
-              </ThemedText>
-            </View>
-          </View>
-
-          <View style={styles.feature}>
-            <Ionicons name="key" size={24} color="#34C759" />
-            <View style={styles.featureText}>
-              <ThemedText style={styles.featureTitle}>Self-Sovereign Identity</ThemedText>
-              <ThemedText style={styles.featureDescription}>
-                You control your identity data and verification proofs
-              </ThemedText>
-            </View>
-          </View>
+        <View style={styles.privacyNote}>
+          <Ionicons name="shield-checkmark" size={20} color="#34C759" />
+          <Text style={styles.privacyText}>
+            Your Aadhaar data is processed locally. Only privacy-preserving proofs are generated and shared.
+          </Text>
         </View>
       </ScrollView>
 
       <View style={styles.buttonContainer}>
         <TouchableOpacity
-          style={[styles.button, styles.primaryButton]}
-          onPress={handleAadhaarSubmit}
-          disabled={isLoading}
+          style={styles.scanButton}
+          onPress={() => setStep('scan')}
         >
-          <Text style={styles.buttonText}>
-            {isLoading ? 'Sending OTP...' : 'Send OTP'}
-          </Text>
+          <Text style={styles.scanButtonText}>Scan Aadhaar QR Code</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.button} onPress={onCancel}>
-          <Text style={styles.secondaryButtonText}>Cancel</Text>
+        <TouchableOpacity style={styles.cancelButton} onPress={onCancel}>
+          <Text style={styles.cancelButtonText}>Cancel</Text>
         </TouchableOpacity>
       </View>
     </ThemedView>
   );
 
-  const renderOTPInput = () => (
+  const renderScanScreen = () => (
     <ThemedView style={styles.container}>
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        <View style={styles.header}>
-          <Ionicons name="mail" size={80} color="#007AFF" />
-          <ThemedText style={styles.title}>Enter OTP</ThemedText>
-          <ThemedText style={styles.subtitle}>
-            Enter the 6-digit OTP sent to your registered mobile number
+      <View style={styles.scanHeader}>
+        <Ionicons name="qr-code" size={60} color="#007AFF" />
+        <ThemedText style={styles.scanTitle}>Scan Aadhaar QR Code</ThemedText>
+        <ThemedText style={styles.scanSubtitle}>
+          Point your camera at the QR code from mAadhaar app or UIDAI PDF
+        </ThemedText>
+      </View>
+
+      <View style={styles.scannerContainer}>
+        <View style={styles.scannerPlaceholder}>
+          <Ionicons name="camera" size={80} color="#666" />
+          <ThemedText style={styles.scannerText}>QR Code Scanner</ThemedText>
+          <ThemedText style={styles.scannerSubtext}>
+            In production, integrate with react-native-qrcode-scanner
           </ThemedText>
         </View>
-
-        <View style={styles.formContainer}>
-          <ThemedText style={styles.label}>OTP Code</ThemedText>
-          <TextInput
-            style={styles.input}
-            value={otp}
-            onChangeText={setOtp}
-            placeholder="Enter 6-digit OTP"
-            keyboardType="numeric"
-            maxLength={6}
-            secureTextEntry={false}
-          />
-          
-          <View style={styles.infoBox}>
-            <Ionicons name="time" size={20} color="#FF9500" />
-            <Text style={styles.infoText}>
-              OTP is valid for 5 minutes. If you don't receive it, please try again.
-            </Text>
-          </View>
-        </View>
-      </ScrollView>
+      </View>
 
       <View style={styles.buttonContainer}>
         <TouchableOpacity
-          style={[styles.button, styles.primaryButton]}
-          onPress={handleOTPSubmit}
-          disabled={isLoading}
+          style={styles.demoButton}
+          onPress={() => {
+            // Demo QR data for testing
+            const demoQRData = JSON.stringify({
+              uid: "123456789012",
+              name: "JOHN DOE",
+              gender: "M",
+              yob: "1990",
+              co: "123 Main Street",
+              vtc: "Sample Village",
+              po: "Sample Post Office",
+              dist: "Sample District",
+              state: "Sample State",
+              pc: "123456"
+            });
+            handleQRCodeScanned(demoQRData);
+          }}
         >
-          <Text style={styles.buttonText}>
-            {isLoading ? 'Verifying...' : 'Verify OTP'}
-          </Text>
+          <Text style={styles.demoButtonText}>Use Demo QR Code</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity 
-          style={styles.button} 
-          onPress={() => setStep('input')}
-        >
-          <Text style={styles.secondaryButtonText}>Back</Text>
+        <TouchableOpacity style={styles.backButton} onPress={() => setStep('intro')}>
+          <Text style={styles.backButtonText}>Back</Text>
         </TouchableOpacity>
       </View>
     </ThemedView>
   );
 
-  const renderResult = () => {
+  const renderProcessingScreen = () => (
+    <ThemedView style={styles.container}>
+      <View style={styles.processingContent}>
+        <Ionicons name="sync" size={80} color="#007AFF" />
+        <ThemedText style={styles.processingTitle}>Processing Aadhaar Data</ThemedText>
+        <ThemedText style={styles.processingSubtitle}>
+          Parsing QR data, generating nullifier, and creating zero-knowledge proof...
+        </ThemedText>
+        
+        <View style={styles.processingSteps}>
+          <View style={styles.processingStep}>
+            <Ionicons name="checkmark-circle" size={20} color="#34C759" />
+            <ThemedText style={styles.processingStepText}>QR Code Parsed</ThemedText>
+          </View>
+          <View style={styles.processingStep}>
+            <Ionicons name="checkmark-circle" size={20} color="#34C759" />
+            <ThemedText style={styles.processingStepText}>Data Normalized</ThemedText>
+          </View>
+          <View style={styles.processingStep}>
+            <Ionicons name="sync" size={20} color="#007AFF" />
+            <ThemedText style={styles.processingStepText}>Generating ZK Proof...</ThemedText>
+          </View>
+        </View>
+      </View>
+    </ThemedView>
+  );
+
+  const renderResultScreen = () => {
     if (!verificationResult) return null;
-
-    const isSuccess = verificationResult.success;
-    const confidencePercentage = Math.round(verificationResult.confidenceScore * 100);
 
     return (
       <ThemedView style={styles.container}>
         <ScrollView contentContainerStyle={styles.scrollContent}>
-          <View style={styles.header}>
+          <View style={styles.resultHeader}>
             <Ionicons 
-              name={isSuccess ? "checkmark-circle" : "close-circle"} 
+              name="checkmark-circle" 
               size={80} 
-              color={isSuccess ? "#34C759" : "#FF3B30"} 
+              color="#34C759" 
             />
-            <ThemedText style={[
-              styles.title,
-              { color: isSuccess ? "#34C759" : "#FF3B30" }
-            ]}>
-              {isSuccess ? "Verification Successful" : "Verification Failed"}
-            </ThemedText>
-            <ThemedText style={styles.subtitle}>
-              {isSuccess 
-                ? "Your identity has been verified through Self Protocol" 
-                : "Identity verification failed. Please try again."
-              }
+            <ThemedText style={styles.resultTitle}>Aadhaar Verification Successful</ThemedText>
+            <ThemedText style={styles.resultSubtitle}>
+              Your Aadhaar has been verified through Self Protocol
             </ThemedText>
           </View>
 
-          {isSuccess && (
-            <View style={styles.resultContainer}>
-              <ThemedText style={styles.sectionTitle}>Verification Details</ThemedText>
-              
-              <View style={styles.resultItem}>
-                <Ionicons name="person" size={20} color="#34C759" />
-                <ThemedText style={styles.resultText}>
-                  Human Verification: {verificationResult.isHuman ? "Passed" : "Failed"}
-                </ThemedText>
-              </View>
-
-              <View style={styles.resultItem}>
-                <Ionicons name="finger-print" size={20} color="#34C759" />
-                <ThemedText style={styles.resultText}>
-                  Uniqueness Check: {verificationResult.isUnique ? "Passed" : "Failed"}
-                </ThemedText>
-              </View>
-
-              <View style={styles.resultItem}>
-                <Ionicons name="calendar" size={20} color="#34C759" />
-                <ThemedText style={styles.resultText}>
-                  Age Verification: {verificationResult.ageVerified ? "Passed" : "Failed"}
-                </ThemedText>
-              </View>
-
-              <View style={styles.resultItem}>
-                <Ionicons name="globe" size={20} color="#34C759" />
-                <ThemedText style={styles.resultText}>
-                  Country Verification: {verificationResult.countryVerified ? "Passed" : "Failed"}
-                </ThemedText>
-              </View>
-
-              <View style={styles.resultItem}>
-                <Ionicons name="shield" size={20} color="#34C759" />
-                <ThemedText style={styles.resultText}>
-                  Sanctions Check: {verificationResult.sanctionsCleared ? "Passed" : "Failed"}
-                </ThemedText>
-              </View>
-
-              <View style={styles.confidenceContainer}>
-                <ThemedText style={styles.confidenceLabel}>Confidence Score</ThemedText>
-                <ThemedText style={styles.confidenceValue}>{confidencePercentage}%</ThemedText>
-              </View>
-
-              {verificationResult.zkProof && (
-                <View style={styles.zkProofContainer}>
-                  <ThemedText style={styles.sectionTitle}>Zero-Knowledge Proof</ThemedText>
-                  <View style={styles.proofItem}>
-                    <Text style={styles.proofLabel}>Proof Hash:</Text>
-                    <Text style={styles.proofValue}>
-                      {verificationResult.zkProof.proofHash.substring(0, 20)}...
-                    </Text>
-                  </View>
-                  <View style={styles.proofItem}>
-                    <Text style={styles.proofLabel}>Identity Commitment:</Text>
-                    <Text style={styles.proofValue}>
-                      {verificationResult.zkProof.identityCommitment.substring(0, 20)}...
-                    </Text>
-                  </View>
-                </View>
-              )}
+          <View style={styles.resultDetails}>
+            <ThemedText style={styles.sectionTitle}>Verification Results</ThemedText>
+            
+            <View style={styles.resultItem}>
+              <Ionicons name="person" size={20} color="#34C759" />
+              <ThemedText style={styles.resultText}>
+                Name: {verificationResult.demographicData.name}
+              </ThemedText>
             </View>
-          )}
+
+            <View style={styles.resultItem}>
+              <Ionicons name="calendar" size={20} color="#34C759" />
+              <ThemedText style={styles.resultText}>
+                Age Verified: {verificationResult.attributes.age ? 'Passed' : 'Failed'}
+              </ThemedText>
+            </View>
+
+            <View style={styles.resultItem}>
+              <Ionicons name="globe" size={20} color="#34C759" />
+              <ThemedText style={styles.resultText}>
+                Nationality: {verificationResult.attributes.nationality || 'Indian'}
+              </ThemedText>
+            </View>
+
+            <View style={styles.resultItem}>
+              <Ionicons name="finger-print" size={20} color="#34C759" />
+              <ThemedText style={styles.resultText}>
+                Uniqueness: {verificationResult.attributes.uniqueness ? 'Verified' : 'Failed'}
+              </ThemedText>
+            </View>
+
+            <View style={styles.nullifierContainer}>
+              <ThemedText style={styles.sectionTitle}>Privacy Protection</ThemedText>
+              <View style={styles.nullifierItem}>
+                <Text style={styles.nullifierLabel}>Nullifier:</Text>
+                <Text style={styles.nullifierValue}>
+                  {verificationResult.nullifier.substring(0, 20)}...
+                </Text>
+              </View>
+              <View style={styles.nullifierItem}>
+                <Text style={styles.nullifierLabel}>ZK Proof Hash:</Text>
+                <Text style={styles.nullifierValue}>
+                  {verificationResult.zkProof.proofHash.substring(0, 20)}...
+                </Text>
+              </View>
+            </View>
+          </View>
         </ScrollView>
 
         <View style={styles.buttonContainer}>
           <TouchableOpacity
-            style={[styles.button, styles.primaryButton]}
-            onPress={handleComplete}
+            style={styles.completeButton}
+            onPress={() => onComplete(verificationResult)}
           >
-            <Text style={styles.buttonText}>Complete</Text>
+            <Text style={styles.completeButtonText}>Complete Verification</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={styles.button}
-            onPress={() => setStep('input')}
+            style={styles.retryButton}
+            onPress={() => setStep('intro')}
           >
-            <Text style={styles.secondaryButtonText}>Try Again</Text>
+            <Text style={styles.retryButtonText}>Verify Another Aadhaar</Text>
           </TouchableOpacity>
         </View>
       </ThemedView>
@@ -329,14 +376,16 @@ export default function AadhaarVerification({ onComplete, onCancel }: AadhaarVer
   };
 
   switch (step) {
-    case 'input':
-      return renderAadhaarInput();
-    case 'otp':
-      return renderOTPInput();
+    case 'intro':
+      return renderIntroScreen();
+    case 'scan':
+      return renderScanScreen();
+    case 'processing':
+      return renderProcessingScreen();
     case 'result':
-      return renderResult();
+      return renderResultScreen();
     default:
-      return renderAadhaarInput();
+      return renderIntroScreen();
   }
 }
 
@@ -349,59 +398,22 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 40,
   },
-  header: {
+  introHeader: {
     alignItems: 'center',
     marginBottom: 40,
   },
-  title: {
+  introTitle: {
     fontSize: 28,
     fontWeight: 'bold',
     textAlign: 'center',
     marginTop: 20,
     marginBottom: 10,
   },
-  subtitle: {
+  introSubtitle: {
     fontSize: 16,
     textAlign: 'center',
     opacity: 0.7,
     lineHeight: 22,
-  },
-  formContainer: {
-    marginBottom: 30,
-  },
-  label: {
-    fontSize: 16,
-    fontWeight: '600',
-    marginBottom: 10,
-    color: '#333333',
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: '#E5E5E7',
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    fontSize: 16,
-    backgroundColor: '#F8F9FA',
-    marginBottom: 15,
-  },
-  infoBox: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    backgroundColor: '#F0F8FF',
-    padding: 15,
-    borderRadius: 10,
-    marginTop: 10,
-  },
-  infoText: {
-    flex: 1,
-    fontSize: 14,
-    marginLeft: 10,
-    lineHeight: 18,
-    color: '#333333',
-  },
-  featuresContainer: {
-    marginBottom: 30,
   },
   sectionTitle: {
     fontSize: 20,
@@ -409,26 +421,155 @@ const styles = StyleSheet.create({
     marginBottom: 15,
     color: '#333333',
   },
-  feature: {
+  howItWorks: {
+    marginBottom: 30,
+  },
+  step: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: 25,
   },
-  featureText: {
-    flex: 1,
-    marginLeft: 15,
+  stepNumber: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: '#007AFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 15,
   },
-  featureTitle: {
+  stepNumberText: {
+    color: 'white',
     fontSize: 16,
+    fontWeight: 'bold',
+  },
+  stepContent: {
+    flex: 1,
+  },
+  stepTitle: {
+    fontSize: 18,
     fontWeight: '600',
     marginBottom: 5,
   },
-  featureDescription: {
+  stepDescription: {
     fontSize: 14,
     opacity: 0.7,
     lineHeight: 18,
   },
-  resultContainer: {
+  privacyNote: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    backgroundColor: '#F0FFF4',
+    padding: 15,
+    borderRadius: 10,
+    marginTop: 20,
+  },
+  privacyText: {
+    flex: 1,
+    fontSize: 12,
+    marginLeft: 10,
+    lineHeight: 16,
+    color: '#333333',
+  },
+  scanHeader: {
+    alignItems: 'center',
+    marginBottom: 40,
+    paddingTop: 40,
+  },
+  scanTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    marginTop: 20,
+    marginBottom: 10,
+  },
+  scanSubtitle: {
+    fontSize: 16,
+    textAlign: 'center',
+    opacity: 0.7,
+    lineHeight: 22,
+  },
+  scannerContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 40,
+  },
+  scannerPlaceholder: {
+    width: 300,
+    height: 300,
+    backgroundColor: '#F8F9FA',
+    borderRadius: 15,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#E9ECEF',
+    borderStyle: 'dashed',
+  },
+  scannerText: {
+    fontSize: 18,
+    fontWeight: '600',
+    marginTop: 15,
+    color: '#666',
+  },
+  scannerSubtext: {
+    fontSize: 12,
+    textAlign: 'center',
+    marginTop: 5,
+    color: '#999',
+    paddingHorizontal: 20,
+  },
+  processingContent: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 40,
+  },
+  processingTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    marginTop: 20,
+    marginBottom: 10,
+  },
+  processingSubtitle: {
+    fontSize: 16,
+    textAlign: 'center',
+    opacity: 0.7,
+    lineHeight: 22,
+    marginBottom: 40,
+  },
+  processingSteps: {
+    width: '100%',
+  },
+  processingStep: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 15,
+  },
+  processingStepText: {
+    fontSize: 16,
+    marginLeft: 10,
+  },
+  resultHeader: {
+    alignItems: 'center',
+    marginBottom: 40,
+  },
+  resultTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    marginTop: 20,
+    marginBottom: 10,
+    color: '#34C759',
+  },
+  resultSubtitle: {
+    fontSize: 16,
+    textAlign: 'center',
+    opacity: 0.7,
+    lineHeight: 22,
+  },
+  resultDetails: {
     marginBottom: 30,
   },
   resultItem: {
@@ -440,40 +581,23 @@ const styles = StyleSheet.create({
     fontSize: 16,
     marginLeft: 10,
   },
-  confidenceContainer: {
+  nullifierContainer: {
     backgroundColor: '#F0F8FF',
-    padding: 20,
-    borderRadius: 12,
-    alignItems: 'center',
-    marginVertical: 20,
-  },
-  confidenceLabel: {
-    fontSize: 16,
-    fontWeight: '600',
-    marginBottom: 5,
-  },
-  confidenceValue: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: '#007AFF',
-  },
-  zkProofContainer: {
-    backgroundColor: '#F0FFF4',
     padding: 20,
     borderRadius: 12,
     marginTop: 20,
   },
-  proofItem: {
+  nullifierItem: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginBottom: 10,
   },
-  proofLabel: {
+  nullifierLabel: {
     fontSize: 14,
     fontWeight: '600',
     color: '#666666',
   },
-  proofValue: {
+  nullifierValue: {
     fontSize: 14,
     color: '#333333',
     fontFamily: 'monospace',
@@ -483,21 +607,71 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
     paddingTop: 20,
   },
-  button: {
+  scanButton: {
+    backgroundColor: '#007AFF',
     paddingVertical: 16,
     borderRadius: 25,
     alignItems: 'center',
     marginBottom: 15,
   },
-  primaryButton: {
-    backgroundColor: '#007AFF',
-  },
-  buttonText: {
+  scanButtonText: {
     color: 'white',
     fontSize: 18,
     fontWeight: '600',
   },
-  secondaryButtonText: {
+  demoButton: {
+    backgroundColor: '#34C759',
+    paddingVertical: 16,
+    borderRadius: 25,
+    alignItems: 'center',
+    marginBottom: 15,
+  },
+  demoButtonText: {
+    color: 'white',
+    fontSize: 18,
+    fontWeight: '600',
+  },
+  completeButton: {
+    backgroundColor: '#34C759',
+    paddingVertical: 16,
+    borderRadius: 25,
+    alignItems: 'center',
+    marginBottom: 15,
+  },
+  completeButtonText: {
+    color: 'white',
+    fontSize: 18,
+    fontWeight: '600',
+  },
+  retryButton: {
+    backgroundColor: '#FF9500',
+    paddingVertical: 16,
+    borderRadius: 25,
+    alignItems: 'center',
+    marginBottom: 15,
+  },
+  retryButtonText: {
+    color: 'white',
+    fontSize: 18,
+    fontWeight: '600',
+  },
+  backButton: {
+    backgroundColor: '#6C757D',
+    paddingVertical: 16,
+    borderRadius: 25,
+    alignItems: 'center',
+    marginBottom: 15,
+  },
+  backButtonText: {
+    color: 'white',
+    fontSize: 18,
+    fontWeight: '600',
+  },
+  cancelButton: {
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  cancelButtonText: {
     color: '#666',
     fontSize: 16,
   },

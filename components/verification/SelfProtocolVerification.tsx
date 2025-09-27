@@ -1,25 +1,23 @@
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import SelfProtocolService, {
-    SelfVerificationRequest,
-    SelfVerificationResult,
+  SelfVerificationRequest,
+  SelfVerificationResult,
 } from '@/services/SelfProtocolService';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useState } from 'react';
 import {
-    Alert,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View
+  Alert,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
 } from 'react-native';
-import FaceCapture from './FaceCapture';
-import IDCapture from './IDCapture';
 
 // const { width } = Dimensions.get('window');
 
-type SelfVerificationStep = 'intro' | 'face' | 'id' | 'processing' | 'result';
+type SelfVerificationStep = 'intro' | 'qr-code' | 'result';
 
 interface SelfProtocolVerificationProps {
   onComplete: (result: SelfVerificationResult) => void;
@@ -39,10 +37,7 @@ export default function SelfProtocolVerification({
   requireSanctionsCheck = false,
 }: SelfProtocolVerificationProps) {
   const [currentStep, setCurrentStep] = useState<SelfVerificationStep>('intro');
-  const [faceImage, setFaceImage] = useState<string | null>(null);
-  const [documentImage, setDocumentImage] = useState<string | null>(null);
   const [verificationResult, setVerificationResult] = useState<SelfVerificationResult | null>(null);
-  // const [isProcessing, setIsProcessing] = useState(false);
 
   const selfProtocolService = SelfProtocolService.getInstance();
 

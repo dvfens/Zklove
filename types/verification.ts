@@ -32,11 +32,16 @@ export interface IDExtractedData {
   dateOfBirth?: string;
   nationality?: string;
   address?: string;
+  // Aadhaar-specific fields
+  aadhaarNumber?: string;
+  fatherName?: string;
+  gender?: string;
+  pincode?: string;
   rawText?: string;
 }
 
 export interface IDVerificationResult {
-  documentType: 'passport' | 'license' | 'id_card' | 'unknown';
+  documentType: 'passport' | 'license' | 'id_card' | 'aadhaar' | 'unknown';
   extractedData: IDExtractedData;
   confidence: number;
   isValid: boolean;

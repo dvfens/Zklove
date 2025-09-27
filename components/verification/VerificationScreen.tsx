@@ -18,13 +18,14 @@ import {
   TouchableOpacity,
   View
 } from 'react-native';
+import AadhaarVerification from './AadhaarVerification';
 import FaceCapture from './FaceCapture';
 import IDCapture from './IDCapture';
 import SelfProtocolVerification from './SelfProtocolVerification';
 
 // const { width } = Dimensions.get('window');
 
-type VerificationStep = 'intro' | 'face' | 'id' | 'processing' | 'result' | 'self-protocol';
+type VerificationStep = 'intro' | 'face' | 'id' | 'processing' | 'result' | 'self-protocol' | 'aadhaar';
 
 interface VerificationScreenProps {
   onComplete: (session: VerificationSession) => void;
@@ -37,13 +38,9 @@ export default function VerificationScreen({ onComplete, onCancel }: Verificatio
   const [faceResult, setFaceResult] = useState<FaceDetectionResult | null>(null);
   const [idResult, setIdResult] = useState<IDVerificationResult | null>(null);
   const [finalResult, setFinalResult] = useState<VerificationSession | null>(null);
-  // const [isProcessing, setIsProcessing] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
 
   const verificationService = VerificationService.getInstance();
-
-  useEffect(() => {
-    initializeSession();
-  }, [initializeSession]);
 
   const initializeSession = useCallback(async () => {
     try {
@@ -54,6 +51,10 @@ export default function VerificationScreen({ onComplete, onCancel }: Verificatio
       Alert.alert('Error', 'Failed to initialize verification session.');
     }
   }, [verificationService]);
+
+  useEffect(() => {
+    initializeSession();
+  }, [initializeSession]);
 
 const inferenceOptions: ExternalInferenceOptions = {
   minConfidence: 0.85,
@@ -158,6 +159,23 @@ const handleIDCapture = async (imageUri: string) => {
                 <ThemedText style={styles.optionTitle}>Self Protocol</ThemedText>
                 <ThemedText style={styles.optionDescription}>
                   Privacy-first verification with zero-knowledge proofs
+                </ThemedText>
+              </View>
+            </View>
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+            style={styles.optionButton}
+            onPress={() => setCurrentStep('aadhaar')}
+          >
+            <View style={styles.optionContent}>
+              <View style={styles.optionIcon}>
+                <Ionicons name="card" size={24} color="#FF6B35" />
+              </View>
+              <View style={styles.optionText}>
+                <ThemedText style={styles.optionTitle}>Aadhaar Verification</ThemedText>
+                <ThemedText style={styles.optionDescription}>
+                  Real Aadhaar authentication through Self Protocol
                 </ThemedText>
               </View>
             </View>
@@ -553,6 +571,31 @@ const handleIDCapture = async (imageUri: string) => {
           requiredAge={18}
           allowedCountries={['USA', 'CAN', 'GBR']}
           requireSanctionsCheck={true}
+        />
+      );
+    case 'aadhaar':
+      return (
+        <AadhaarVerification
+          onComplete={(result) => {
+            // Convert Aadhaar verification result to standard verification session
+            const session: VerificationSession = {
+              id: result.verificationId || `aadhaar_${Date.now()}`,
+              timestamp: result.timestamp || Date.now(),
+              faceData: null, // Aadhaar doesn't expose raw biometric data
+              idData: null, // Aadhaar doesn't expose raw personal data
+              status: result.success ? 'completed' : 'failed',
+              overallScore: result.confidenceScore || 0,
+              zkProof: result.zkProof ? {
+                proof: result.zkProof.proof,
+                publicSignals: result.zkProof.publicSignals,
+                proofHash: result.zkProof.proofHash,
+                commitmentHash: result.zkProof.identityCommitment,
+                nullifierHash: result.zkProof.nullifierHash
+              } : undefined
+            };
+            onComplete(session);
+          }}
+          onCancel={() => setCurrentStep('intro')}
         />
       );
     default:

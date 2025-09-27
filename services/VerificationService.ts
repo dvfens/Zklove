@@ -380,11 +380,24 @@ class VerificationService {
 
   private detectDocumentType(data: any): IDVerificationResult['documentType'] {
     // Simple document type detection based on extracted data patterns
+    
+    // Check for Aadhaar card (12-digit number, specific patterns)
+    if (data.aadhaarNumber || (data.documentNumber && data.documentNumber.length === 12 && /^\d{12}$/.test(data.documentNumber))) {
+      return 'aadhaar';
+    }
+    
+    // Check for other document types
     if (data.name && data.documentNumber && data.expiryDate) {
       if (data.documentNumber.length === 9) return 'license';
       if (data.nationality) return 'passport';
       return 'id_card';
     }
+    
+    // Check for Aadhaar-specific fields even without documentNumber
+    if (data.name && (data.fatherName || data.gender) && data.address) {
+      return 'aadhaar';
+    }
+    
     return 'unknown';
   }
 

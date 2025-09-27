@@ -149,6 +149,106 @@ class SelfProtocolService {
   }
 
   /**
+   * Authenticate with Aadhaar using Self Protocol
+   */
+  async authenticateWithAadhaar(aadhaarNumber: string, biometricData?: any): Promise<SelfVerificationResult> {
+    if (!this.apiKey || !this.secretKey) {
+      throw new Error('Self Protocol API credentials not configured');
+    }
+
+    try {
+      const response = await fetch(`${this.endpoint}/aadhaar/authenticate`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${this.apiKey}`,
+          'Content-Type': 'application/json',
+          'X-Self-Secret': this.secretKey
+        },
+        body: JSON.stringify({
+          aadhaarNumber,
+          biometricData,
+          privacyLevel: this.privacyLevel,
+          dataRetentionDays: this.maxRetentionDays
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`Aadhaar authentication failed: ${response.status}`);
+      }
+
+      const result = await response.json();
+      
+      // Convert Self Protocol response to our format
+      return {
+        isHuman: result.isHuman,
+        isUnique: result.isUnique,
+        ageVerified: result.ageVerified,
+        countryVerified: result.countryVerified,
+        sanctionsCleared: result.sanctionsCleared,
+        confidenceScore: result.confidenceScore,
+        riskScore: result.riskScore,
+        zkProof: result.zkProof,
+        verificationId: result.verificationId,
+        timestamp: result.timestamp,
+        expiresAt: result.expiresAt
+      };
+    } catch (error) {
+      console.error('Aadhaar authentication failed:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Generate zero-knowledge proof using Self Protocol
+   */
+  async generateZKProof(verificationData: any): Promise<SelfIdentityProof> {
+    if (!this.apiKey || !this.secretKey) {
+      throw new Error('Self Protocol API credentials not configured');
+    }
+
+    try {
+      const response = await fetch(`${this.endpoint}/zk-proof/generate`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${this.apiKey}`,
+          'Content-Type': 'application/json',
+          'X-Self-Secret': this.secretKey
+        },
+        body: JSON.stringify({
+          verificationData,
+          privacyLevel: this.privacyLevel,
+          disclosureConfig: {
+            revealAge: true,
+            revealCountry: true,
+            revealHumanity: true,
+            revealUniqueness: true
+          }
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`ZK proof generation failed: ${response.status}`);
+      }
+
+      const result = await response.json();
+      
+      return {
+        proof: result.proof,
+        publicSignals: result.publicSignals,
+        proofHash: result.proofHash,
+        identityCommitment: result.identityCommitment,
+        nullifierHash: result.nullifierHash,
+        verificationTimestamp: result.verificationTimestamp,
+        protocolVersion: result.protocolVersion,
+        verificationLevel: result.verificationLevel
+      };
+    } catch (error) {
+      console.error('ZK proof generation failed:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Process biometric data locally without external services
    */
   async processBiometricData(
@@ -191,11 +291,11 @@ class SelfProtocolService {
     const nullifierHash = await this.createNullifierHash(biometricData);
     
     // Generate zero-knowledge proof
-    const zkProof = await this.generateZKProof(
+    const zkProof = await this.generateZKProof({
       biometricData,
       identityCommitment,
       nullifierHash
-    );
+    });
     
     return {
       proof: zkProof.proof,
@@ -411,42 +511,6 @@ class SelfProtocolService {
     return await Crypto.digestStringAsync(Crypto.CryptoDigestAlgorithm.SHA256, data);
   }
 
-  private async generateZKProof(
-    biometricData: SelfBiometricData,
-    identityCommitment: string,
-    nullifierHash: string
-  ): Promise<{
-    proof: { a: [string, string]; b: [[string, string], [string, string]]; c: [string, string] };
-    publicSignals: string[];
-    proofHash: string;
-  }> {
-    // Simulate zero-knowledge proof generation
-    // In a real implementation, this would use circom/snarkjs or similar
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    
-    const proof = {
-      a: [await Crypto.randomUUID(), await Crypto.randomUUID()] as [string, string],
-      b: [
-        [await Crypto.randomUUID(), await Crypto.randomUUID()],
-        [await Crypto.randomUUID(), await Crypto.randomUUID()]
-      ] as [[string, string], [string, string]],
-      c: [await Crypto.randomUUID(), await Crypto.randomUUID()] as [string, string]
-    };
-    
-    const publicSignals = [
-      identityCommitment,
-      nullifierHash,
-      await Crypto.randomUUID() // merkle root
-    ];
-    
-    const proofData = JSON.stringify({ proof, publicSignals });
-    const proofHash = await Crypto.digestStringAsync(
-      Crypto.CryptoDigestAlgorithm.SHA256, 
-      proofData
-    );
-    
-    return { proof, publicSignals, proofHash };
-  }
 
   private determineVerificationLevel(request: SelfVerificationRequest): 'basic' | 'enhanced' | 'premium' {
     if (request.requireSanctionsCheck && request.allowedCountries) {

@@ -2,27 +2,29 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import type { ExternalInferenceOptions } from '@/services/MoproZKService';
 import VerificationService, {
-  FaceDetectionResult,
-  IDVerificationResult,
   VerificationSession,
 } from '@/services/VerificationService';
+import type {
+  FaceDetectionResult,
+  IDVerificationResult,
+} from '@/types/verification';
 import { Ionicons } from '@expo/vector-icons';
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   Alert,
-  Dimensions,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
-  View,
+  View
 } from 'react-native';
 import FaceCapture from './FaceCapture';
 import IDCapture from './IDCapture';
+import SelfProtocolVerification from './SelfProtocolVerification';
 
-const { width } = Dimensions.get('window');
+// const { width } = Dimensions.get('window');
 
-type VerificationStep = 'intro' | 'face' | 'id' | 'processing' | 'result';
+type VerificationStep = 'intro' | 'face' | 'id' | 'processing' | 'result' | 'self-protocol';
 
 interface VerificationScreenProps {
   onComplete: (session: VerificationSession) => void;
@@ -35,15 +37,15 @@ export default function VerificationScreen({ onComplete, onCancel }: Verificatio
   const [faceResult, setFaceResult] = useState<FaceDetectionResult | null>(null);
   const [idResult, setIdResult] = useState<IDVerificationResult | null>(null);
   const [finalResult, setFinalResult] = useState<VerificationSession | null>(null);
-  const [isProcessing, setIsProcessing] = useState(false);
+  // const [isProcessing, setIsProcessing] = useState(false);
 
   const verificationService = VerificationService.getInstance();
 
   useEffect(() => {
     initializeSession();
-  }, []);
+  }, [initializeSession]);
 
-  const initializeSession = async () => {
+  const initializeSession = useCallback(async () => {
     try {
       const id = await verificationService.startVerificationSession();
       setSessionId(id);
@@ -51,7 +53,7 @@ export default function VerificationScreen({ onComplete, onCancel }: Verificatio
       console.error('Failed to initialize session:', error);
       Alert.alert('Error', 'Failed to initialize verification session.');
     }
-  };
+  }, [verificationService]);
 
 const inferenceOptions: ExternalInferenceOptions = {
   minConfidence: 0.85,
@@ -124,7 +126,47 @@ const handleIDCapture = async (imageUri: string) => {
           </ThemedText>
         </View>
 
+        <View style={styles.verificationOptions}>
+          <ThemedText style={styles.sectionTitle}>Choose Verification Method</ThemedText>
+          
+          <TouchableOpacity 
+            style={styles.optionButton}
+            onPress={() => setCurrentStep('face')}
+          >
+            <View style={styles.optionContent}>
+              <View style={styles.optionIcon}>
+                <Ionicons name="shield-checkmark" size={24} color="#007AFF" />
+              </View>
+              <View style={styles.optionText}>
+                <ThemedText style={styles.optionTitle}>Standard Verification</ThemedText>
+                <ThemedText style={styles.optionDescription}>
+                  Traditional verification with blockchain integration
+                </ThemedText>
+              </View>
+            </View>
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+            style={styles.optionButton}
+            onPress={() => setCurrentStep('self-protocol')}
+          >
+            <View style={styles.optionContent}>
+              <View style={styles.optionIcon}>
+                <Ionicons name="key" size={24} color="#34C759" />
+              </View>
+              <View style={styles.optionText}>
+                <ThemedText style={styles.optionTitle}>Self Protocol</ThemedText>
+                <ThemedText style={styles.optionDescription}>
+                  Privacy-first verification with zero-knowledge proofs
+                </ThemedText>
+              </View>
+            </View>
+          </TouchableOpacity>
+        </View>
+
         <View style={styles.stepsContainer}>
+          <ThemedText style={styles.sectionTitle}>How It Works</ThemedText>
+          
           <View style={styles.step}>
             <View style={styles.stepIcon}>
               <Ionicons name="camera" size={24} color="#007AFF" />
@@ -484,6 +526,35 @@ const handleIDCapture = async (imageUri: string) => {
       return renderProcessingScreen();
     case 'result':
       return renderResultScreen();
+    case 'self-protocol':
+      return (
+        <SelfProtocolVerification
+          onComplete={(result) => {
+            // Convert Self Protocol result to standard verification session
+            const session: VerificationSession = {
+              id: result.verificationId,
+              timestamp: result.timestamp,
+              faceData: null, // Self Protocol doesn't expose raw data
+              idData: null, // Self Protocol doesn't expose raw data
+              status: result.confidenceScore > 0.8 ? 'completed' : 'failed',
+              overallScore: result.confidenceScore,
+              zkProof: {
+                proof: result.zkProof.proof,
+                publicSignals: result.zkProof.publicSignals,
+                proofHash: result.zkProof.proofHash,
+                commitmentHash: result.zkProof.identityCommitment,
+                nullifierHash: result.zkProof.nullifierHash
+              }
+            };
+            onComplete(session);
+          }}
+          onCancel={() => setCurrentStep('intro')}
+          verificationLevel="enhanced"
+          requiredAge={18}
+          allowedCountries={['USA', 'CAN', 'GBR']}
+          requireSanctionsCheck={true}
+        />
+      );
     default:
       return renderIntroScreen();
   }
@@ -515,6 +586,49 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     opacity: 0.7,
     lineHeight: 22,
+  },
+  verificationOptions: {
+    marginBottom: 30,
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 15,
+    color: '#333333',
+  },
+  optionButton: {
+    backgroundColor: '#F8F9FA',
+    borderRadius: 12,
+    marginBottom: 15,
+    borderWidth: 1,
+    borderColor: '#E5E5E7',
+  },
+  optionContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 20,
+  },
+  optionIcon: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: '#F0F8FF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 15,
+  },
+  optionText: {
+    flex: 1,
+  },
+  optionTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    marginBottom: 5,
+  },
+  optionDescription: {
+    fontSize: 14,
+    opacity: 0.7,
+    lineHeight: 18,
   },
   stepsContainer: {
     marginBottom: 30,

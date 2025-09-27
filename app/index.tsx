@@ -2,7 +2,8 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import VerificationScreen from '@/components/verification/VerificationScreen';
 import ZkLoveLogo from '@/components/ZkLoveLogo';
-import VerificationService, { VerificationSession } from '@/services/VerificationService';
+import AppInitializationService from '@/services/AppInitializationService';
+import { VerificationSession } from '@/services/VerificationService';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useEffect, useState } from 'react';
 import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity } from 'react-native';
@@ -12,24 +13,20 @@ export default function HomeScreen() {
   const [verificationHistory, setVerificationHistory] = useState<VerificationSession[]>([]);
 
   useEffect(() => {
-    // Configure services on app startup using config
-    const verificationService = VerificationService.getInstance();
-    const ConfigService = require('@/services/ConfigService').default;
-    const configService = ConfigService.getInstance();
-    
-    // Configure ML services with user's API keys
-    const mlConfig = configService.getMLConfig();
-    verificationService.configureMachineLearning(mlConfig);
-    
-    console.log('App configured with:', {
-      mlEnabled: mlConfig.apiKeys.faceApi !== 'your_face_api_key_here',
-      blockchainNetwork: configService.getBlockchainConfig().network,
-      featuresEnabled: {
-        blockchain: configService.isFeatureEnabled('enableBlockchainSubmission'),
-        ipfs: configService.isFeatureEnabled('enableIpfsStorage'),
-        zkProofs: configService.isFeatureEnabled('enableZkProofs')
+    // Initialize all services including Self Protocol
+    const initializeServices = async () => {
+      try {
+        const appInitService = AppInitializationService.getInstance();
+        await appInitService.initializeAllServices();
+        
+        console.log('All services initialized successfully');
+      } catch (error) {
+        console.error('Service initialization failed:', error);
+        // Continue with app even if some services fail
       }
-    });
+    };
+
+    initializeServices();
   }, []);
 
   const handleVerificationComplete = (session: VerificationSession) => {

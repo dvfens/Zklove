@@ -1,5 +1,6 @@
-import * as Crypto from 'expo-crypto';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as Crypto from 'expo-crypto';
+import { config } from '../config';
 
 /**
  * Self Protocol - Privacy-First Identity Verification
@@ -92,13 +93,59 @@ export interface SelfBiometricData {
 class SelfProtocolService {
   private static instance: SelfProtocolService;
   private readonly protocolVersion = '1.0.0';
-  private readonly maxRetentionDays = 30;
+  private readonly maxRetentionDays: number;
+  private readonly apiKey: string;
+  private readonly secretKey: string;
+  private readonly endpoint: string;
+  private readonly verificationEndpoint: string;
+  private readonly privacyLevel: string;
+  private readonly enableBiometricStorage: boolean;
 
   static getInstance(): SelfProtocolService {
     if (!SelfProtocolService.instance) {
       SelfProtocolService.instance = new SelfProtocolService();
     }
     return SelfProtocolService.instance;
+  }
+
+  constructor() {
+    // Load configuration from config.js
+    this.maxRetentionDays = config.selfProtocol?.dataRetentionDays || 30;
+    this.apiKey = config.selfProtocol?.apiKey || '';
+    this.secretKey = config.selfProtocol?.secretKey || '';
+    this.endpoint = config.selfProtocol?.endpoint || 'https://api.selfprotocol.com/v1';
+    this.verificationEndpoint = config.selfProtocol?.verificationEndpoint || 'https://verification.selfprotocol.com';
+    this.privacyLevel = config.selfProtocol?.privacyLevel || 'enhanced';
+    this.enableBiometricStorage = config.selfProtocol?.enableBiometricStorage || false;
+  }
+
+  /**
+   * Initialize Self Protocol service with API credentials
+   */
+  async initialize(): Promise<void> {
+    if (!this.apiKey || !this.secretKey) {
+      console.warn('Self Protocol API credentials not configured. Using mock mode.');
+      return;
+    }
+
+    try {
+      // Test API connection
+      const response = await fetch(`${this.endpoint}/health`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${this.apiKey}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        console.log('Self Protocol API connection established');
+      } else {
+        console.warn('Self Protocol API connection failed, using mock mode');
+      }
+    } catch (error) {
+      console.warn('Self Protocol API unavailable, using mock mode:', error);
+    }
   }
 
   /**
@@ -378,12 +425,12 @@ class SelfProtocolService {
     await new Promise(resolve => setTimeout(resolve, 2000));
     
     const proof = {
-      a: [await Crypto.randomUUID(), await Crypto.randomUUID()],
+      a: [await Crypto.randomUUID(), await Crypto.randomUUID()] as [string, string],
       b: [
         [await Crypto.randomUUID(), await Crypto.randomUUID()],
         [await Crypto.randomUUID(), await Crypto.randomUUID()]
-      ],
-      c: [await Crypto.randomUUID(), await Crypto.randomUUID()]
+      ] as [[string, string], [string, string]],
+      c: [await Crypto.randomUUID(), await Crypto.randomUUID()] as [string, string]
     };
     
     const publicSignals = [
@@ -600,10 +647,101 @@ class SelfProtocolService {
   }
 
   private async storeVerificationResult(result: SelfVerificationResult): Promise<void> {
+    // Store locally
     await AsyncStorage.setItem(
       `self_verification_${result.verificationId}`,
       JSON.stringify(result)
     );
+
+    // Submit to Self Protocol API if configured
+    if (this.apiKey && this.secretKey) {
+      try {
+        await this.submitToSelfProtocolAPI(result);
+      } catch (error) {
+        console.warn('Failed to submit to Self Protocol API:', error);
+      }
+    }
+  }
+
+  /**
+   * Submit verification result to Self Protocol API
+   */
+  private async submitToSelfProtocolAPI(result: SelfVerificationResult): Promise<void> {
+    const payload = {
+      verificationId: result.verificationId,
+      isHuman: result.isHuman,
+      isUnique: result.isUnique,
+      ageVerified: result.ageVerified,
+      countryVerified: result.countryVerified,
+      sanctionsCleared: result.sanctionsCleared,
+      confidenceScore: result.confidenceScore,
+      riskScore: result.riskScore,
+      zkProof: {
+        proofHash: result.zkProof.proofHash,
+        identityCommitment: result.zkProof.identityCommitment,
+        nullifierHash: result.zkProof.nullifierHash,
+        verificationLevel: result.zkProof.verificationLevel
+      },
+      timestamp: result.timestamp,
+      expiresAt: result.expiresAt,
+      privacyLevel: this.privacyLevel
+    };
+
+    const response = await fetch(`${this.verificationEndpoint}/verify`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${this.apiKey}`,
+        'Content-Type': 'application/json',
+        'X-API-Secret': this.secretKey
+      },
+      body: JSON.stringify(payload)
+    });
+
+    if (!response.ok) {
+      throw new Error(`Self Protocol API error: ${response.status}`);
+    }
+
+    console.log('Verification result submitted to Self Protocol API');
+  }
+
+  /**
+   * Get verification status from Self Protocol API
+   */
+  async getVerificationStatusFromAPI(verificationId: string): Promise<{
+    isValid: boolean;
+    isExpired: boolean;
+    verificationLevel: string;
+    apiStatus?: string;
+  }> {
+    if (!this.apiKey || !this.secretKey) {
+      // Fallback to local storage
+      return await this.checkVerificationStatus(verificationId);
+    }
+
+    try {
+      const response = await fetch(`${this.verificationEndpoint}/status/${verificationId}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${this.apiKey}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        return {
+          isValid: data.isValid,
+          isExpired: data.isExpired,
+          verificationLevel: data.verificationLevel,
+          apiStatus: data.status
+        };
+      }
+    } catch (error) {
+      console.warn('Failed to get status from Self Protocol API:', error);
+    }
+
+    // Fallback to local storage
+    return await this.checkVerificationStatus(verificationId);
   }
 }
 

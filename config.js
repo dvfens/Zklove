@@ -68,15 +68,15 @@ export const config = {
     rpcUrls: {
       ethereum: {
         mainnet: 'https://eth.llamarpc.com',
-        sepolia: https://sepolia.infura.io/v3/ + INFURA_PROJECT_ID
+        sepolia: 'https://sepolia.infura.io/v3/' + INFURA_PROJECT_ID
       },
       polygon: {
         mainnet: 'https://polygon.llamarpc.com',
-        mumbai: https://polygon-mumbai.infura.io/v3/ + INFURA_PROJECT_ID
+        mumbai: 'https://polygon-mumbai.infura.io/v3/' + INFURA_PROJECT_ID
       },
       arbitrum: {
         mainnet: 'https://arbitrum.llamarpc.com',
-        sepolia: https://arbitrum-sepolia.infura.io/v3/ + INFURA_PROJECT_ID
+        sepolia: 'https://arbitrum-sepolia.infura.io/v3/' + INFURA_PROJECT_ID
       }
     },
     

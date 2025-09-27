@@ -24,7 +24,11 @@
         "buildType": "apk",
         "image": "latest",
         "env": {
-          "EXPO_NO_CAPABILITY_SYNC": "1"
+          "EXPO_NO_CAPABILITY_SYNC": "1",
+          "EXPO_USE_FAST_RESOLVER": "1"
+        },
+        "cache": {
+          "disabled": true
         }
       }
     }

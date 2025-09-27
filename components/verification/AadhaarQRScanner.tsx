@@ -4,12 +4,12 @@ import { Ionicons } from '@expo/vector-icons';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import React, { useState } from 'react';
 import {
-  Alert,
-  Dimensions,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View
+    Alert,
+    Dimensions,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View
 } from 'react-native';
 
 interface AadhaarQRScannerProps {
@@ -23,6 +23,7 @@ export default function AadhaarQRScanner({ onQRCodeScanned, onCancel }: AadhaarQ
   const [permission, requestPermission] = useCameraPermissions();
   const [scanned, setScanned] = useState(false);
   const [isScanning, setIsScanning] = useState(true);
+  const [cameraReady, setCameraReady] = useState(false);
 
   const handleBarCodeScanned = ({ type, data }: { type: string; data: string }) => {
     if (scanned) return;
@@ -98,10 +99,13 @@ export default function AadhaarQRScanner({ onQRCodeScanned, onCancel }: AadhaarQ
           <Ionicons name="camera" size={60} color="#FF3B30" />
           <ThemedText style={styles.permissionTitle}>Camera Permission Required</ThemedText>
           <ThemedText style={styles.permissionText}>
-            We need camera access to scan your Aadhaar QR code. Please enable camera permissions in your device settings.
+            We need camera access to scan your Aadhaar QR code. Please grant permission when prompted.
           </ThemedText>
-          <TouchableOpacity style={styles.settingsButton} onPress={onCancel}>
-            <Text style={styles.settingsButtonText}>Go to Settings</Text>
+          <TouchableOpacity style={styles.settingsButton} onPress={requestPermission}>
+            <Text style={styles.settingsButtonText}>Request Permission</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.cancelButton} onPress={onCancel}>
+            <Text style={styles.cancelButtonText}>Use Manual Input</Text>
           </TouchableOpacity>
         </View>
       </ThemedView>
@@ -122,9 +126,14 @@ export default function AadhaarQRScanner({ onQRCodeScanned, onCancel }: AadhaarQ
         <CameraView
           onBarcodeScanned={scanned ? undefined : handleBarCodeScanned}
           barcodeScannerSettings={{
-            barcodeTypes: ['qr', 'pdf417'],
+            barcodeTypes: ['qr', 'pdf417', 'datamatrix'],
           }}
           style={styles.scanner}
+          facing="back"
+          onCameraReady={() => {
+            console.log('Camera is ready for scanning');
+            setCameraReady(true);
+          }}
         />
         
         {/* Scanner overlay */}

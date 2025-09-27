@@ -2,21 +2,21 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import type { ExternalInferenceOptions } from '@/services/MoproZKService';
 import VerificationService, {
-  VerificationSession,
+    VerificationSession,
 } from '@/services/VerificationService';
 import type {
-  FaceDetectionResult,
-  IDVerificationResult,
+    FaceDetectionResult,
+    IDVerificationResult,
 } from '@/types/verification';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
-  Alert,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View
+    Alert,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View
 } from 'react-native';
 import AadhaarVerification from './AadhaarVerification';
 import ETHGlobalNFCScanner from './ETHGlobalNFCScanner';
@@ -166,8 +166,26 @@ const handleIDCapture = async (imageUri: string) => {
           </TouchableOpacity>
 
           <TouchableOpacity 
-            style={styles.optionButton}
-            onPress={() => setCurrentStep('aadhaar')}
+            style={[styles.optionButton, styles.comingSoonOption]}
+            onPress={() => {
+              Alert.alert(
+                '🚀 Coming Soon!',
+                'Aadhaar Verification is currently under development and will be available in the next update. Stay tuned for enhanced privacy-first Aadhaar authentication!',
+                [
+                  { 
+                    text: 'Notify Me', 
+                    onPress: () => {
+                      Alert.alert(
+                        '📧 Notification Set!',
+                        'We\'ll notify you when Aadhaar Verification is ready. Thank you for your interest!',
+                        [{ text: 'OK' }]
+                      );
+                    }
+                  },
+                  { text: 'OK' }
+                ]
+              );
+            }}
           >
             <View style={styles.optionContent}>
               <View style={styles.optionIcon}>
@@ -178,6 +196,9 @@ const handleIDCapture = async (imageUri: string) => {
                 <ThemedText style={styles.optionDescription}>
                   Real Aadhaar authentication through Self Protocol
                 </ThemedText>
+              </View>
+              <View style={styles.comingSoonBadge}>
+                <ThemedText style={styles.comingSoonText}>Coming Soon</ThemedText>
               </View>
             </View>
           </TouchableOpacity>
@@ -727,6 +748,26 @@ const styles = StyleSheet.create({
     fontSize: 14,
     opacity: 0.7,
     lineHeight: 18,
+  },
+  comingSoonOption: {
+    opacity: 0.7,
+    borderColor: '#FFB800',
+    borderWidth: 1,
+    backgroundColor: 'rgba(255, 184, 0, 0.05)',
+  },
+  comingSoonBadge: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    backgroundColor: '#FFB800',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  comingSoonText: {
+    fontSize: 10,
+    fontWeight: 'bold',
+    color: '#000',
   },
   stepsContainer: {
     marginBottom: 30,

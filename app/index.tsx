@@ -1,3 +1,5 @@
+import DatingScreen from '@/components/dating/DatingScreen';
+import ProgressTracker from '@/components/ProgressTracker';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import VerificationScreen from '@/components/verification/VerificationScreen';
@@ -10,6 +12,7 @@ import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity } from 'react-nat
 
 export default function HomeScreen() {
   const [showVerification, setShowVerification] = useState(false);
+  const [showDating, setShowDating] = useState(false);
   const [verificationHistory, setVerificationHistory] = useState<VerificationSession[]>([]);
 
   useEffect(() => {
@@ -33,11 +36,26 @@ export default function HomeScreen() {
     setVerificationHistory(prev => [session, ...prev]);
     setShowVerification(false);
     
-    Alert.alert(
-      'Verification Complete',
-      `Identity verification ${session.status === 'completed' ? 'successful' : 'failed'} with ${Math.round(session.overallScore * 100)}% confidence.`,
-      [{ text: 'OK' }]
-    );
+    if (session.status === 'completed') {
+      Alert.alert(
+        '✅ Verification Complete!',
+        `Identity verification successful with ${Math.round(session.overallScore * 100)}% confidence. You can now access the dating features!`,
+        [
+          { text: 'Continue', style: 'default' },
+          { 
+            text: 'Start Dating', 
+            style: 'default',
+            onPress: () => setShowDating(true)
+          }
+        ]
+      );
+    } else {
+      Alert.alert(
+        'Verification Failed',
+        `Identity verification failed with ${Math.round(session.overallScore * 100)}% confidence. Please try again.`,
+        [{ text: 'OK' }]
+      );
+    }
   };
 
   const handleVerificationCancel = () => {
@@ -53,6 +71,14 @@ export default function HomeScreen() {
     );
   }
 
+  if (showDating) {
+    return (
+      <DatingScreen
+        onBack={() => setShowDating(false)}
+      />
+    );
+  }
+
   return (
     <ThemedView style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
@@ -61,7 +87,7 @@ export default function HomeScreen() {
           <ZkLoveLogo size={100} style={styles.logo} />
           <ThemedText style={styles.title}>zkLove</ThemedText>
           <ThemedText style={styles.subtitle}>
-            Advanced Identity Verification System
+            Zero-Knowledge Identity & Privacy-First Dating
           </ThemedText>
         </ThemedView>
 
@@ -116,7 +142,75 @@ export default function HomeScreen() {
               </ThemedText>
             </ThemedView>
           </ThemedView>
+
+          <TouchableOpacity 
+            style={[styles.feature, styles.datingFeature]} 
+            onPress={() => {
+              if (verificationHistory.length === 0) {
+                Alert.alert(
+                  'Identity Verification Required',
+                  'Please complete identity verification first to access dating features.',
+                  [
+                    { text: 'Cancel', style: 'cancel' },
+                    { text: 'Verify Now', onPress: () => setShowVerification(true) }
+                  ]
+                );
+              } else {
+                setShowDating(true);
+              }
+            }}
+          >
+            <ThemedView style={[styles.featureIcon, styles.datingIcon]}>
+              <Ionicons name="heart" size={24} color="#FF6B35" />
+            </ThemedView>
+            <ThemedView style={styles.featureContent}>
+              <ThemedText style={styles.featureTitle}>🚀 Zero-Knowledge Dating</ThemedText>
+              <ThemedText style={styles.featureDescription}>
+                Privacy-first dating with anonymous matching and on-chain verification
+              </ThemedText>
+              {verificationHistory.length === 0 && (
+                <ThemedText style={styles.requiresVerification}>
+                  ⚠️ Requires identity verification
+                </ThemedText>
+              )}
+            </ThemedView>
+            <Ionicons name="arrow-forward" size={20} color="#FF6B35" />
+          </TouchableOpacity>
         </ThemedView>
+
+        {/* Progress Tracker */}
+        <ProgressTracker steps={[
+          {
+            id: 'verification',
+            title: 'Identity Verification',
+            description: 'Complete zero-knowledge identity verification',
+            icon: 'shield-checkmark-outline',
+            completed: verificationHistory.some(v => v.status === 'completed'),
+            current: verificationHistory.length === 0
+          },
+          {
+            id: 'profile',
+            title: 'Create Dating Profile',
+            description: 'Set up your anonymous dating profile with ZK commitments',
+            icon: 'person-outline',
+            completed: false, // Would check if user has dating profile
+            current: verificationHistory.some(v => v.status === 'completed') && !false
+          },
+          {
+            id: 'matching',
+            title: 'Find Matches',
+            description: 'Discover compatible people in your city',
+            icon: 'heart-outline',
+            completed: false, // Would check if user has matches
+          },
+          {
+            id: 'connect',
+            title: 'Make Connections',
+            description: 'Unlock details and start meaningful conversations',
+            icon: 'chatbubble-outline',
+            completed: false, // Would check if user has active chats
+          }
+        ]} />
 
         {/* Verification History */}
         {verificationHistory.length > 0 && (
@@ -323,5 +417,19 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '600',
     marginLeft: 8,
+  },
+  datingFeature: {
+    borderColor: '#FF6B35',
+    borderWidth: 2,
+    backgroundColor: 'rgba(255, 107, 53, 0.05)',
+  },
+  datingIcon: {
+    backgroundColor: 'rgba(255, 107, 53, 0.1)',
+  },
+  requiresVerification: {
+    fontSize: 12,
+    color: '#FFB800',
+    marginTop: 5,
+    fontWeight: '600',
   },
 });

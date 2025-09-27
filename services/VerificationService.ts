@@ -3,8 +3,8 @@ import * as Crypto from 'expo-crypto';
 import * as FileSystem from 'expo-file-system/legacy';
 import { Image } from 'react-native';
 import CryptoJS from 'react-native-crypto-js';
-import MoproZKService, { ZKProof, BiometricWitness, DecentralizedIdentity } from './MoproZKService';
 import BlockchainService from './BlockchainService';
+import MoproZKService, { BiometricWitness, DecentralizedIdentity, ZKProof } from './MoproZKService';
 
 export interface FaceFeature {
   bounds: {

@@ -17,4 +17,10 @@ config.resolver.platforms = ['ios', 'android', 'native', 'web'];
 // Handle node modules that need polyfills
 config.resolver.resolverMainFields = ['react-native', 'browser', 'main'];
 
+// Fix for InternalBytecode.js issue
+config.resolver.sourceExts = [...config.resolver.sourceExts, 'js', 'jsx', 'ts', 'tsx'];
+
+// Exclude problematic files
+config.resolver.blacklistRE = /InternalBytecode\.js$/;
+
 module.exports = config;

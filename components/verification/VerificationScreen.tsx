@@ -164,9 +164,9 @@ const handleIDCapture = async (imageUri: string) => {
 
         <View style={styles.securityNote}>
           <Ionicons name="lock-closed" size={20} color="#666" />
-          <ThemedText style={styles.securityText}>
+          <Text style={styles.securityText}>
             Your data is encrypted and processed securely. We never store your biometric data.
-          </ThemedText>
+          </Text>
         </View>
       </ScrollView>
 
@@ -347,24 +347,24 @@ const handleIDCapture = async (imageUri: string) => {
           {/* ZK Proof Information */}
           {finalResult.zkProof && (
             <View style={styles.zkProofInfo}>
-              <ThemedText style={styles.resultSectionTitle}>Zero-Knowledge Proof</ThemedText>
+              <Text style={styles.resultSectionTitle}>Zero-Knowledge Proof</Text>
               <View style={styles.dataItem}>
-                <ThemedText style={styles.dataLabel}>Proof Hash:</ThemedText>
-                <ThemedText style={styles.dataValue} numberOfLines={1}>
+                <Text style={styles.dataLabel}>Proof Hash:</Text>
+                <Text style={styles.dataValue} numberOfLines={1}>
                   {finalResult.zkProof.proofHash.substring(0, 20)}...
-                </ThemedText>
+                </Text>
               </View>
               <View style={styles.dataItem}>
-                <ThemedText style={styles.dataLabel}>Commitment:</ThemedText>
-                <ThemedText style={styles.dataValue} numberOfLines={1}>
+                <Text style={styles.dataLabel}>Commitment:</Text>
+                <Text style={styles.dataValue} numberOfLines={1}>
                   {finalResult.zkProof.commitmentHash.substring(0, 20)}...
-                </ThemedText>
+                </Text>
               </View>
               <View style={styles.dataItem}>
-                <ThemedText style={styles.dataLabel}>Privacy:</ThemedText>
-                <ThemedText style={styles.dataValue}>
+                <Text style={styles.dataLabel}>Privacy:</Text>
+                <Text style={styles.dataValue}>
                   Zero-knowledge (no personal data revealed)
-                </ThemedText>
+                </Text>
               </View>
             </View>
           )}
@@ -372,22 +372,22 @@ const handleIDCapture = async (imageUri: string) => {
           {/* Decentralized Identity */}
           {finalResult.decentralizedIdentity && (
             <View style={styles.didInfo}>
-              <ThemedText style={styles.resultSectionTitle}>Decentralized Identity</ThemedText>
+              <Text style={styles.resultSectionTitle}>Decentralized Identity</Text>
               <View style={styles.dataItem}>
-                <ThemedText style={styles.dataLabel}>DID:</ThemedText>
-                <ThemedText style={styles.dataValue} numberOfLines={1}>
+                <Text style={styles.dataLabel}>DID:</Text>
+                <Text style={styles.dataValue} numberOfLines={1}>
                   {finalResult.decentralizedIdentity.did}
-                </ThemedText>
+                </Text>
               </View>
               <View style={styles.dataItem}>
-                <ThemedText style={styles.dataLabel}>Created:</ThemedText>
-                <ThemedText style={styles.dataValue}>
+                <Text style={styles.dataLabel}>Created:</Text>
+                <Text style={styles.dataValue}>
                   {new Date(finalResult.decentralizedIdentity.metadata.created).toLocaleDateString()}
-                </ThemedText>
+                </Text>
               </View>
               <View style={styles.dataItem}>
-                <ThemedText style={styles.dataLabel}>Status:</ThemedText>
-                <ThemedText style={styles.dataValue}>Active & Verified</ThemedText>
+                <Text style={styles.dataLabel}>Status:</Text>
+                <Text style={styles.dataValue}>Active & Verified</Text>
               </View>
             </View>
           )}
@@ -395,43 +395,43 @@ const handleIDCapture = async (imageUri: string) => {
           {/* Blockchain Transaction */}
           {finalResult.blockchainTxHash && (
             <View style={styles.blockchainInfo}>
-              <ThemedText style={styles.resultSectionTitle}>Blockchain Record</ThemedText>
+              <Text style={styles.resultSectionTitle}>Blockchain Record</Text>
               <View style={styles.dataItem}>
-                <ThemedText style={styles.dataLabel}>Transaction:</ThemedText>
-                <ThemedText style={styles.dataValue} numberOfLines={1}>
+                <Text style={styles.dataLabel}>Transaction:</Text>
+                <Text style={styles.dataValue} numberOfLines={1}>
                   {finalResult.blockchainTxHash.substring(0, 20)}...
-                </ThemedText>
+                </Text>
               </View>
               <View style={styles.dataItem}>
-                <ThemedText style={styles.dataLabel}>Network:</ThemedText>
-                <ThemedText style={styles.dataValue}>Polygon Mainnet</ThemedText>
+                <Text style={styles.dataLabel}>Network:</Text>
+                <Text style={styles.dataValue}>Polygon Mainnet</Text>
               </View>
               <View style={styles.dataItem}>
-                <ThemedText style={styles.dataLabel}>Immutable:</ThemedText>
-                <ThemedText style={styles.dataValue}>Permanently recorded</ThemedText>
+                <Text style={styles.dataLabel}>Immutable:</Text>
+                <Text style={styles.dataValue}>Permanently recorded</Text>
               </View>
             </View>
           )}
 
           {idResult?.extractedData && (
             <View style={styles.extractedData}>
-              <ThemedText style={styles.resultSectionTitle}>Extracted Information</ThemedText>
+              <Text style={styles.resultSectionTitle}>Extracted Information</Text>
               {idResult.extractedData.name && (
                 <View style={styles.dataItem}>
-                  <ThemedText style={styles.dataLabel}>Name:</ThemedText>
-                  <ThemedText style={styles.dataValue}>{idResult.extractedData.name}</ThemedText>
+                  <Text style={styles.dataLabel}>Name:</Text>
+                  <Text style={styles.dataValue}>{idResult.extractedData.name}</Text>
                 </View>
               )}
               {idResult.extractedData.documentNumber && (
                 <View style={styles.dataItem}>
-                  <ThemedText style={styles.dataLabel}>Document #:</ThemedText>
-                  <ThemedText style={styles.dataValue}>{idResult.extractedData.documentNumber}</ThemedText>
+                  <Text style={styles.dataLabel}>Document #:</Text>
+                  <Text style={styles.dataValue}>{idResult.extractedData.documentNumber}</Text>
                 </View>
               )}
               {idResult.extractedData.expiryDate && (
                 <View style={styles.dataItem}>
-                  <ThemedText style={styles.dataLabel}>Expires:</ThemedText>
-                  <ThemedText style={styles.dataValue}>{idResult.extractedData.expiryDate}</ThemedText>
+                  <Text style={styles.dataLabel}>Expires:</Text>
+                  <Text style={styles.dataValue}>{idResult.extractedData.expiryDate}</Text>
                 </View>
               )}
             </View>
@@ -559,7 +559,8 @@ const styles = StyleSheet.create({
     fontSize: 12,
     marginLeft: 10,
     lineHeight: 16,
-    opacity: 0.8,
+    color: '#333333',
+    opacity: 1,
   },
   // Processing Screen Styles
   processingContainer: {
@@ -619,6 +620,7 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: 'bold',
     marginBottom: 15,
+    color: '#333333',
   },
   resultItem: {
     flexDirection: 'row',
@@ -667,11 +669,14 @@ const styles = StyleSheet.create({
   dataLabel: {
     fontSize: 14,
     fontWeight: '600',
-    opacity: 0.7,
+    color: '#666666',
+    opacity: 1,
   },
   dataValue: {
     fontSize: 14,
     fontWeight: '500',
+    color: '#333333',
+    opacity: 1,
   },
   // Button Styles
   buttonContainer: {

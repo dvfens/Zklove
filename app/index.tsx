@@ -1,6 +1,7 @@
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import VerificationScreen from '@/components/verification/VerificationScreen';
+import ZkLoveLogo from '@/components/ZkLoveLogo';
 import VerificationService, { VerificationSession } from '@/services/VerificationService';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useEffect, useState } from 'react';
@@ -60,7 +61,7 @@ export default function HomeScreen() {
       <ScrollView contentContainerStyle={styles.scrollContent}>
         {/* Header */}
         <ThemedView style={styles.header}>
-          <Ionicons name="shield-checkmark" size={60} color="#007AFF" />
+          <ZkLoveLogo size={100} style={styles.logo} />
           <ThemedText style={styles.title}>zkLove</ThemedText>
           <ThemedText style={styles.subtitle}>
             Advanced Identity Verification System
@@ -176,11 +177,14 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     paddingHorizontal: 20,
     paddingTop: 60,
-    paddingBottom: 100,
+    paddingBottom: 40,
   },
   header: {
     alignItems: 'center',
     marginBottom: 40,
+  },
+  logo: {
+    marginBottom: 16,
   },
   title: {
     fontSize: 32,

@@ -1,17 +1,17 @@
-import React, { useState, useRef, useEffect } from 'react';
-import {
-  View,
-  StyleSheet,
-  Dimensions,
-  TouchableOpacity,
-  Text,
-  Alert,
-} from 'react-native';
-import { CameraView, CameraType, useCameraPermissions } from 'expo-camera';
-import { Ionicons } from '@expo/vector-icons';
-import { ThemedView } from '@/components/themed-view';
 import { ThemedText } from '@/components/themed-text';
+import { ThemedView } from '@/components/themed-view';
 import VerificationService, { FaceDetectionResult } from '@/services/VerificationService';
+import { Ionicons } from '@expo/vector-icons';
+import { CameraType, CameraView, useCameraPermissions } from 'expo-camera';
+import React, { useEffect, useRef, useState } from 'react';
+import {
+    Alert,
+    Dimensions,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
+} from 'react-native';
 
 const { width, height } = Dimensions.get('window');
 
@@ -131,56 +131,56 @@ export default function FaceCapture({ onFaceCapture, onCancel }: FaceCaptureProp
         style={styles.camera}
         facing={facing}
         animateShutter={false}
-      >
-        {/* Face Guide Overlay */}
-        <View style={styles.overlay}>
-          <View style={styles.faceGuide}>
-            <View style={styles.faceGuideCorner} />
-            <View style={[styles.faceGuideCorner, styles.topRight]} />
-            <View style={[styles.faceGuideCorner, styles.bottomLeft]} />
-            <View style={[styles.faceGuideCorner, styles.bottomRight]} />
-          </View>
+      />
+      
+      {/* Face Guide Overlay */}
+      <View style={styles.overlay}>
+        <View style={styles.faceGuide}>
+          <View style={styles.faceGuideCorner} />
+          <View style={[styles.faceGuideCorner, styles.topRight]} />
+          <View style={[styles.faceGuideCorner, styles.bottomLeft]} />
+          <View style={[styles.faceGuideCorner, styles.bottomRight]} />
         </View>
+      </View>
 
-        {/* Instructions */}
-        <View style={styles.instructionContainer}>
-          <ThemedText style={styles.instructionText}>
-            Position your face within the guide
-          </ThemedText>
-          <ThemedText style={styles.instructionSubtext}>
-            Look directly at the camera
-          </ThemedText>
+      {/* Instructions */}
+      <View style={styles.instructionContainer}>
+        <ThemedText style={styles.instructionText}>
+          Position your face within the guide
+        </ThemedText>
+        <ThemedText style={styles.instructionSubtext}>
+          Look directly at the camera
+        </ThemedText>
+      </View>
+
+      {/* Countdown */}
+      {countdown > 0 && (
+        <View style={styles.countdownContainer}>
+          <Text style={styles.countdownText}>{countdown}</Text>
         </View>
+      )}
 
-        {/* Countdown */}
-        {countdown > 0 && (
-          <View style={styles.countdownContainer}>
-            <Text style={styles.countdownText}>{countdown}</Text>
-          </View>
-        )}
+      {/* Controls */}
+      <View style={styles.controlsContainer}>
+        <TouchableOpacity style={styles.cancelControl} onPress={onCancel}>
+          <Ionicons name="close" size={24} color="white" />
+        </TouchableOpacity>
 
-        {/* Controls */}
-        <View style={styles.controlsContainer}>
-          <TouchableOpacity style={styles.cancelControl} onPress={onCancel}>
-            <Ionicons name="close" size={24} color="white" />
-          </TouchableOpacity>
+        <TouchableOpacity
+          style={[
+            styles.captureButton,
+            isProcessing && styles.captureButtonDisabled
+          ]}
+          onPress={startCapture}
+          disabled={isProcessing}
+        >
+          <View style={styles.captureButtonInner} />
+        </TouchableOpacity>
 
-          <TouchableOpacity
-            style={[
-              styles.captureButton,
-              isProcessing && styles.captureButtonDisabled
-            ]}
-            onPress={startCapture}
-            disabled={isProcessing}
-          >
-            <View style={styles.captureButtonInner} />
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.flipControl} onPress={toggleCameraFacing}>
-            <Ionicons name="camera-reverse" size={24} color="white" />
-          </TouchableOpacity>
-        </View>
-      </CameraView>
+        <TouchableOpacity style={styles.flipControl} onPress={toggleCameraFacing}>
+          <Ionicons name="camera-reverse" size={24} color="white" />
+        </TouchableOpacity>
+      </View>
     </ThemedView>
   );
 }

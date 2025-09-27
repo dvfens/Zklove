@@ -1,98 +1,305 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
-
-import { HelloWave } from '@/components/hello-wave';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { Link } from 'expo-router';
+import VerificationScreen from '@/components/verification/VerificationScreen';
+import { VerificationSession } from '@/services/VerificationService';
+import { Ionicons } from '@expo/vector-icons';
+import React, { useState } from 'react';
+import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity } from 'react-native';
 
 export default function HomeScreen() {
-  return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <Link href="/modal">
-          <Link.Trigger>
-            <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-          </Link.Trigger>
-          <Link.Preview />
-          <Link.Menu>
-            <Link.MenuAction title="Action" icon="cube" onPress={() => alert('Action pressed')} />
-            <Link.MenuAction
-              title="Share"
-              icon="square.and.arrow.up"
-              onPress={() => alert('Share pressed')}
-            />
-            <Link.Menu title="More" icon="ellipsis">
-              <Link.MenuAction
-                title="Delete"
-                icon="trash"
-                destructive
-                onPress={() => alert('Delete pressed')}
-              />
-            </Link.Menu>
-          </Link.Menu>
-        </Link>
+  const [showVerification, setShowVerification] = useState(false);
+  const [verificationHistory, setVerificationHistory] = useState<VerificationSession[]>([]);
 
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
+  const handleVerificationComplete = (session: VerificationSession) => {
+    setVerificationHistory(prev => [session, ...prev]);
+    setShowVerification(false);
+    
+    Alert.alert(
+      'Verification Complete',
+      `Identity verification ${session.status === 'completed' ? 'successful' : 'failed'} with ${Math.round(session.overallScore * 100)}% confidence.`,
+      [{ text: 'OK' }]
+    );
+  };
+
+  const handleVerificationCancel = () => {
+    setShowVerification(false);
+  };
+
+  if (showVerification) {
+    return (
+      <VerificationScreen
+        onComplete={handleVerificationComplete}
+        onCancel={handleVerificationCancel}
+      />
+    );
+  }
+
+  return (
+    <ThemedView style={styles.container}>
+      <ScrollView contentContainerStyle={styles.scrollContent}>
+        {/* Header */}
+        <ThemedView style={styles.header}>
+          <Ionicons name="shield-checkmark" size={60} color="#007AFF" />
+          <ThemedText style={styles.title}>zkLove</ThemedText>
+          <ThemedText style={styles.subtitle}>
+            Advanced Identity Verification System
+          </ThemedText>
+        </ThemedView>
+
+        {/* Features */}
+        <ThemedView style={styles.featuresContainer}>
+          <ThemedText style={styles.sectionTitle}>Features</ThemedText>
+          
+          <ThemedView style={styles.feature}>
+            <ThemedView style={styles.featureIcon}>
+              <Ionicons name="camera" size={24} color="#007AFF" />
+            </ThemedView>
+            <ThemedView style={styles.featureContent}>
+              <ThemedText style={styles.featureTitle}>Face Recognition</ThemedText>
+              <ThemedText style={styles.featureDescription}>
+                Advanced liveness detection and face analysis
+              </ThemedText>
+            </ThemedView>
+          </ThemedView>
+
+          <ThemedView style={styles.feature}>
+            <ThemedView style={styles.featureIcon}>
+              <Ionicons name="document-text" size={24} color="#007AFF" />
+            </ThemedView>
+            <ThemedView style={styles.featureContent}>
+              <ThemedText style={styles.featureTitle}>ID Verification</ThemedText>
+              <ThemedText style={styles.featureDescription}>
+                OCR and document authenticity validation
+              </ThemedText>
+            </ThemedView>
+          </ThemedView>
+
+          <ThemedView style={styles.feature}>
+            <ThemedView style={styles.featureIcon}>
+              <Ionicons name="analytics" size={24} color="#007AFF" />
+            </ThemedView>
+            <ThemedView style={styles.featureContent}>
+              <ThemedText style={styles.featureTitle}>AI-Powered Analysis</ThemedText>
+              <ThemedText style={styles.featureDescription}>
+                Cross-verification and confidence scoring
+              </ThemedText>
+            </ThemedView>
+          </ThemedView>
+
+          <ThemedView style={styles.feature}>
+            <ThemedView style={styles.featureIcon}>
+              <Ionicons name="lock-closed" size={24} color="#007AFF" />
+            </ThemedView>
+            <ThemedView style={styles.featureContent}>
+              <ThemedText style={styles.featureTitle}>Secure & Private</ThemedText>
+              <ThemedText style={styles.featureDescription}>
+                End-to-end encryption, no data storage
+              </ThemedText>
+            </ThemedView>
+          </ThemedView>
+        </ThemedView>
+
+        {/* Verification History */}
+        {verificationHistory.length > 0 && (
+          <ThemedView style={styles.historyContainer}>
+            <ThemedText style={styles.sectionTitle}>Recent Verifications</ThemedText>
+            {verificationHistory.slice(0, 3).map((session, index) => (
+              <ThemedView key={session.id} style={styles.historyItem}>
+                <Ionicons 
+                  name={session.status === 'completed' ? "checkmark-circle" : "close-circle"} 
+                  size={20} 
+                  color={session.status === 'completed' ? "#34C759" : "#FF3B30"} 
+                />
+                <ThemedView style={styles.historyContent}>
+                  <ThemedText style={styles.historyTitle}>
+                    {session.status === 'completed' ? 'Verified' : 'Failed'}
+                  </ThemedText>
+                  <ThemedText style={styles.historyDescription}>
+                    {Math.round(session.overallScore * 100)}% confidence • {new Date(session.timestamp).toLocaleDateString()}
+                  </ThemedText>
+                </ThemedView>
+              </ThemedView>
+            ))}
+          </ThemedView>
+        )}
+
+        {/* Security Notice */}
+        <ThemedView style={styles.securityNotice}>
+          <Ionicons name="information-circle" size={20} color="#666" />
+          <ThemedText style={styles.securityText}>
+            Your biometric data is processed locally and never stored on our servers. 
+            All verification happens on-device for maximum privacy.
+          </ThemedText>
+        </ThemedView>
+      </ScrollView>
+
+      {/* Start Verification Button */}
+      <ThemedView style={styles.buttonContainer}>
+        <TouchableOpacity
+          style={styles.verifyButton}
+          onPress={() => setShowVerification(true)}
+        >
+          <Ionicons name="scan" size={24} color="white" />
+          <Text style={styles.verifyButtonText}>Start Verification</Text>
+        </TouchableOpacity>
       </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+    </ThemedView>
   );
 }
 
 const styles = StyleSheet.create({
-  titleContainer: {
+  container: {
+    flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
+    paddingHorizontal: 20,
+    paddingTop: 60,
+    paddingBottom: 100,
+  },
+  header: {
+    alignItems: 'center',
+    marginBottom: 40,
+  },
+  title: {
+    fontSize: 32,
+    fontWeight: 'bold',
+    marginTop: 15,
+    marginBottom: 5,
+  },
+  subtitle: {
+    fontSize: 16,
+    opacity: 0.7,
+    textAlign: 'center',
+  },
+  sectionTitle: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    marginBottom: 20,
+  },
+  featuresContainer: {
+    marginBottom: 40,
+  },
+  feature: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    marginBottom: 16,
+    padding: 20,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#E5E5EA',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
   },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
+  featureIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#F0F8FF',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  reactLogo: {
-    height: 178,
-    width: 290,
+  featureContent: {
+    flex: 1,
+    marginLeft: 16,
+  },
+  featureTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  featureDescription: {
+    fontSize: 14,
+    opacity: 0.7,
+    lineHeight: 18,
+  },
+  historyContainer: {
+    marginBottom: 30,
+  },
+  historyItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#E5E5EA',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 1,
+    },
+    shadowOpacity: 0.03,
+    shadowRadius: 4,
+    elevation: 1,
+  },
+  historyContent: {
+    flex: 1,
+    marginLeft: 12,
+  },
+  historyTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 2,
+  },
+  historyDescription: {
+    fontSize: 14,
+    opacity: 0.7,
+  },
+  securityNotice: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    backgroundColor: '#F0F8FF',
+    padding: 16,git a
+    borderRadius: 12,
+    marginTop: 20,
+    borderLeftWidth: 4,
+    borderLeftColor: '#007AFF',
+  },
+  securityText: {
+    flex: 1,
+    fontSize: 12,
+    marginLeft: 10,
+    lineHeight: 16,
+    opacity: 0.8,
+  },
+  buttonContainer: {
+    position: 'absolute',
     bottom: 0,
     left: 0,
-    position: 'absolute',
+    right: 0,
+    paddingHorizontal: 20,
+    paddingBottom: 40,
+    paddingTop: 20,
+    borderTopWidth: 1,
+    borderTopColor: '#E5E5EA',
+  },
+  verifyButton: {
+    backgroundColor: '#007AFF',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 18,
+    borderRadius: 28,
+    elevation: 4,
+    shadowColor: '#007AFF',
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+  },
+  verifyButtonText: {
+    color: 'white',
+    fontSize: 18,
+    fontWeight: '600',
+    marginLeft: 8,
   },
 });

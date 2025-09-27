@@ -1,18 +1,18 @@
-import React, { useState, useRef } from 'react';
-import {
-  View,
-  StyleSheet,
-  TouchableOpacity,
-  Text,
-  Alert,
-  Dimensions,
-} from 'react-native';
-import { CameraView, CameraType, useCameraPermissions } from 'expo-camera';
-import * as DocumentPicker from 'expo-document-picker';
-import { Ionicons } from '@expo/vector-icons';
-import { ThemedView } from '@/components/themed-view';
 import { ThemedText } from '@/components/themed-text';
+import { ThemedView } from '@/components/themed-view';
 import VerificationService, { IDVerificationResult } from '@/services/VerificationService';
+import { Ionicons } from '@expo/vector-icons';
+import { CameraType, CameraView, useCameraPermissions } from 'expo-camera';
+import * as DocumentPicker from 'expo-document-picker';
+import React, { useRef, useState } from 'react';
+import {
+    Alert,
+    Dimensions,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
+} from 'react-native';
 
 const { width, height } = Dimensions.get('window');
 
@@ -184,64 +184,64 @@ export default function IDCapture({ onIDCapture, onCancel }: IDCaptureProps) {
         style={styles.camera}
         facing={facing}
         animateShutter={false}
-      >
-        {/* Document Guide Overlay */}
-        <View style={styles.overlay}>
-          <View style={styles.documentGuide}>
-            <View style={styles.documentFrame} />
-          </View>
+      />
+      
+      {/* Document Guide Overlay */}
+      <View style={styles.overlay}>
+        <View style={styles.documentGuide}>
+          <View style={styles.documentFrame} />
         </View>
+      </View>
 
-        {/* Instructions */}
-        <View style={styles.instructionContainer}>
-          <ThemedText style={styles.instructionText}>
-            Position your ID document within the frame
-          </ThemedText>
-          <ThemedText style={styles.instructionSubtext}>
-            Ensure all text is clearly visible
-          </ThemedText>
+      {/* Instructions */}
+      <View style={styles.instructionContainer}>
+        <ThemedText style={styles.instructionText}>
+          Position your ID document within the frame
+        </ThemedText>
+        <ThemedText style={styles.instructionSubtext}>
+          Ensure all text is clearly visible
+        </ThemedText>
+      </View>
+
+      {/* Processing Indicator */}
+      {isProcessing && (
+        <View style={styles.processingContainer}>
+          <ThemedText style={styles.processingText}>Processing...</ThemedText>
         </View>
+      )}
 
-        {/* Processing Indicator */}
-        {isProcessing && (
-          <View style={styles.processingContainer}>
-            <ThemedText style={styles.processingText}>Processing...</ThemedText>
-          </View>
-        )}
+      {/* Controls */}
+      <View style={styles.controlsContainer}>
+        <TouchableOpacity style={styles.cancelControl} onPress={onCancel}>
+          <Ionicons name="close" size={24} color="white" />
+        </TouchableOpacity>
 
-        {/* Controls */}
-        <View style={styles.controlsContainer}>
-          <TouchableOpacity style={styles.cancelControl} onPress={onCancel}>
-            <Ionicons name="close" size={24} color="white" />
-          </TouchableOpacity>
+        <TouchableOpacity
+          style={[
+            styles.captureButton,
+            isProcessing && styles.captureButtonDisabled
+          ]}
+          onPress={capturePhoto}
+          disabled={isProcessing}
+        >
+          <Ionicons name="camera" size={32} color="white" />
+        </TouchableOpacity>
 
-          <TouchableOpacity
-            style={[
-              styles.captureButton,
-              isProcessing && styles.captureButtonDisabled
-            ]}
-            onPress={capturePhoto}
-            disabled={isProcessing}
-          >
-            <Ionicons name="camera" size={32} color="white" />
-          </TouchableOpacity>
+        <TouchableOpacity style={styles.flipControl} onPress={toggleCameraFacing}>
+          <Ionicons name="camera-reverse" size={24} color="white" />
+        </TouchableOpacity>
+      </View>
 
-          <TouchableOpacity style={styles.flipControl} onPress={toggleCameraFacing}>
-            <Ionicons name="camera-reverse" size={24} color="white" />
-          </TouchableOpacity>
-        </View>
-
-        {/* Bottom Actions */}
-        <View style={styles.bottomActions}>
-          <TouchableOpacity
-            style={styles.galleryButton}
-            onPress={() => setCaptureMode('gallery')}
-          >
-            <Ionicons name="images" size={20} color="white" />
-            <Text style={styles.galleryButtonText}>Gallery</Text>
-          </TouchableOpacity>
-        </View>
-      </CameraView>
+      {/* Bottom Actions */}
+      <View style={styles.bottomActions}>
+        <TouchableOpacity
+          style={styles.galleryButton}
+          onPress={() => setCaptureMode('gallery')}
+        >
+          <Ionicons name="images" size={20} color="white" />
+          <Text style={styles.galleryButtonText}>Gallery</Text>
+        </TouchableOpacity>
+      </View>
     </ThemedView>
   );
 }

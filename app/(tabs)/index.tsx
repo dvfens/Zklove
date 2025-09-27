@@ -1,14 +1,29 @@
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import VerificationScreen from '@/components/verification/VerificationScreen';
-import { VerificationSession } from '@/services/VerificationService';
+import VerificationService, { VerificationSession } from '@/services/VerificationService';
 import { Ionicons } from '@expo/vector-icons';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity } from 'react-native';
 
 export default function HomeScreen() {
   const [showVerification, setShowVerification] = useState(false);
   const [verificationHistory, setVerificationHistory] = useState<VerificationSession[]>([]);
+
+  useEffect(() => {
+    // Configure ML services on app startup
+    const verificationService = VerificationService.getInstance();
+    verificationService.configureMachineLearning({
+      faceDetectionEndpoint: 'https://api.faceapi.com/detect',
+      documentOcrEndpoint: 'https://api.textract.com/analyze',
+      apiKeys: {
+        faceApi: 'demo-face-api-key',
+        documentApi: 'demo-document-api-key'
+      },
+      timeout: 30000,
+      retryAttempts: 3
+    });
+  }, []);
 
   const handleVerificationComplete = (session: VerificationSession) => {
     setVerificationHistory(prev => [session, ...prev]);

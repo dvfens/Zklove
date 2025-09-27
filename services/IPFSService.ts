@@ -1,5 +1,4 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import CryptoJS from 'react-native-crypto-js';
 
 // IPFS-like decentralized storage simulation
 // In production, this would integrate with actual IPFS nodes or Pinata/Infura

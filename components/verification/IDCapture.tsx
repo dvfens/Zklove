@@ -1,6 +1,6 @@
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import VerificationService, { IDVerificationResult } from '@/services/VerificationService';
+import VerificationService from '@/services/VerificationService';
 import { Ionicons } from '@expo/vector-icons';
 import { CameraType, CameraView, useCameraPermissions } from 'expo-camera';
 import * as DocumentPicker from 'expo-document-picker';
@@ -14,10 +14,10 @@ import {
     View,
 } from 'react-native';
 
-const { width, height } = Dimensions.get('window');
+const { width } = Dimensions.get('window');
 
 interface IDCaptureProps {
-  onIDCapture: (result: IDVerificationResult) => void;
+  onIDCapture: (imageUri: string) => void;
   onCancel: () => void;
 }
 
@@ -101,33 +101,7 @@ export default function IDCapture({ onIDCapture, onCancel }: IDCaptureProps) {
 
   const processDocument = async (imageUri: string) => {
     try {
-      const result = await verificationService.verifyIDDocument(imageUri);
-      
-      if (result.confidence < 0.5) {
-        Alert.alert(
-          'Document Quality Issue',
-          'The document image quality is too low. Please ensure the document is well-lit and all text is clearly visible.',
-          [
-            { text: 'Retry', style: 'default' },
-            { text: 'Continue Anyway', onPress: () => onIDCapture(result) }
-          ]
-        );
-        return;
-      }
-
-      if (!result.isValid) {
-        Alert.alert(
-          'Invalid Document',
-          'The document appears to be invalid or expired. Please check your document and try again.',
-          [
-            { text: 'Retry', style: 'default' },
-            { text: 'Continue Anyway', onPress: () => onIDCapture(result) }
-          ]
-        );
-        return;
-      }
-
-      onIDCapture(result);
+          onIDCapture(imageUri);
     } catch (error) {
       console.error('Error processing document:', error);
       Alert.alert(

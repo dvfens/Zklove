@@ -1,5 +1,6 @@
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import type { ExternalInferenceOptions } from '@/services/MoproZKService';
 import VerificationService, {
     FaceDetectionResult,
     IDVerificationResult,
@@ -52,15 +53,42 @@ export default function VerificationScreen({ onComplete, onCancel }: Verificatio
     }
   };
 
-  const handleFaceCapture = (result: FaceDetectionResult) => {
-    setFaceResult(result);
-    setCurrentStep('id');
+const inferenceOptions: ExternalInferenceOptions = {
+  minConfidence: 0.85,
+  requireLiveness: true,
+  compareWithDocument: true,
+};
+
+const handleFaceCapture = async (imageUri: string) => {
+    try {
+      setCurrentStep('processing');
+      const inference = await verificationService.detectFaces(
+        imageUri,
+        inferenceOptions
+      );
+      setFaceResult(inference);
+      setCurrentStep('id');
+    } catch (error) {
+      console.error('Face inference failed:', error);
+      Alert.alert('Face Analysis Failed', String(error));
+      setCurrentStep('face');
+    }
   };
 
-  const handleIDCapture = (result: IDVerificationResult) => {
-    setIdResult(result);
-    setCurrentStep('processing');
-    processVerification();
+const handleIDCapture = async (imageUri: string) => {
+    try {
+      setCurrentStep('processing');
+      const inference = await verificationService.verifyIDDocument(
+        imageUri,
+        inferenceOptions
+      );
+      setIdResult(inference);
+      processVerification();
+    } catch (error) {
+      console.error('Document inference failed:', error);
+      Alert.alert('Document Analysis Failed', String(error));
+      setCurrentStep('id');
+    }
   };
 
   const processVerification = async () => {

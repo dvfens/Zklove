@@ -1,6 +1,6 @@
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import VerificationService, { FaceDetectionResult } from '@/services/VerificationService';
+import VerificationService from '@/services/VerificationService';
 import { Ionicons } from '@expo/vector-icons';
 import { CameraType, CameraView, useCameraPermissions } from 'expo-camera';
 import React, { useEffect, useRef, useState } from 'react';
@@ -13,10 +13,10 @@ import {
     View,
 } from 'react-native';
 
-const { width, height } = Dimensions.get('window');
+const { width } = Dimensions.get('window');
 
 interface FaceCaptureProps {
-  onFaceCapture: (result: FaceDetectionResult) => void;
+  onFaceCapture: (imageUri: string) => void;
   onCancel: () => void;
 }
 
@@ -32,8 +32,9 @@ export default function FaceCapture({ onFaceCapture, onCancel }: FaceCaptureProp
     if (countdown > 0) {
       const timer = setTimeout(() => setCountdown(countdown - 1), 1000);
       return () => clearTimeout(timer);
-    } else if (countdown === 0 && isProcessing) {
-      capturePhoto();
+    }
+    if (countdown === 0 && isProcessing) {
+      void capturePhoto();
     }
   }, [countdown, isProcessing]);
 
@@ -66,7 +67,7 @@ export default function FaceCapture({ onFaceCapture, onCancel }: FaceCaptureProp
     setIsProcessing(true);
   };
 
-  const capturePhoto = async () => {
+  const capturePhoto = async (): Promise<void> => {
     if (!cameraRef.current) return;
 
     try {
@@ -77,36 +78,7 @@ export default function FaceCapture({ onFaceCapture, onCancel }: FaceCaptureProp
       });
 
       if (photo) {
-        const result = await verificationService.detectFaces(photo.uri);
-        
-        if (result.faces.length === 0) {
-          Alert.alert(
-            'No Face Detected',
-            'Please ensure your face is clearly visible and try again.',
-            [{ text: 'Retry', onPress: () => setIsProcessing(false) }]
-          );
-          return;
-        }
-
-        if (result.faces.length > 1) {
-          Alert.alert(
-            'Multiple Faces Detected',
-            'Please ensure only one face is visible in the frame.',
-            [{ text: 'Retry', onPress: () => setIsProcessing(false) }]
-          );
-          return;
-        }
-
-        if (!result.isLive) {
-          Alert.alert(
-            'Liveness Check Failed',
-            'Please look directly at the camera and ensure good lighting.',
-            [{ text: 'Retry', onPress: () => setIsProcessing(false) }]
-          );
-          return;
-        }
-
-        onFaceCapture(result);
+        onFaceCapture(photo.uri);
       }
     } catch (error) {
       console.error('Error capturing photo:', error);

@@ -1,47 +1,23 @@
+import type {
+  FaceDetectionResult,
+  FaceFeature,
+  IDVerificationResult,
+} from '@/types/verification';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Crypto from 'expo-crypto';
 import * as FileSystem from 'expo-file-system/legacy';
 import { Image } from 'react-native';
-import CryptoJS from 'react-native-crypto-js';
 import BlockchainService from './BlockchainService';
-import MoproZKService, { BiometricWitness, DecentralizedIdentity, ZKProof } from './MoproZKService';
+import MoproZKService, {
+  BiometricWitness,
+  DecentralizedIdentity,
+  DocumentInferenceResult,
+  ExternalInferenceOptions,
+  FaceInferenceResult,
+  MLConfig,
+  ZKProof,
+} from './MoproZKService';
 
-export interface FaceFeature {
-  bounds: {
-    origin: { x: number; y: number };
-    size: { width: number; height: number };
-  };
-  landmarks?: {
-    leftEyePosition?: { x: number; y: number };
-    rightEyePosition?: { x: number; y: number };
-    noseBasePosition?: { x: number; y: number };
-    bottomMouthPosition?: { x: number; y: number };
-  };
-  rollAngle?: number;
-  yawAngle?: number;
-  smilingProbability?: number;
-}
-
-export interface FaceDetectionResult {
-  faces: FaceFeature[];
-  imageUri: string;
-  confidence: number;
-  isLive: boolean;
-}
-
-export interface IDVerificationResult {
-  documentType: 'passport' | 'license' | 'id_card' | 'unknown';
-  extractedData: {
-    name?: string;
-    documentNumber?: string;
-    expiryDate?: string;
-    dateOfBirth?: string;
-    nationality?: string;
-  };
-  confidence: number;
-  isValid: boolean;
-  faceMatch?: number;
-}
 
 export interface VerificationSession {
   id: string;
@@ -61,6 +37,7 @@ class VerificationService {
   private currentSession: VerificationSession | null = null;
   private moproService: MoproZKService;
   private blockchainService: BlockchainService;
+  private mlConfig: MLConfig | null = null;
 
   static getInstance(): VerificationService {
     if (!VerificationService.instance) {
@@ -73,6 +50,11 @@ class VerificationService {
     this.moproService = MoproZKService.getInstance();
     this.blockchainService = BlockchainService.getInstance();
     // Don't initialize blockchain services immediately - do it on-demand
+  }
+
+  configureMachineLearning(config: MLConfig) {
+    this.mlConfig = config;
+    this.moproService.configureMachineLearning(config);
   }
 
   private async initializeServices(): Promise<void> {
@@ -119,21 +101,13 @@ class VerificationService {
     return sessionId;
   }
 
-  async detectFaces(imageUri: string): Promise<FaceDetectionResult> {
+  async detectFaces(imageUri: string, options: ExternalInferenceOptions = {}): Promise<FaceDetectionResult> {
     try {
-      // Simulate face detection using image analysis
-      const imageInfo = await this.analyzeImage(imageUri);
-      const faces = await this.simulateFaceDetection(imageUri, imageInfo);
-      
-      const confidence = faces.length > 0 ? this.calculateFaceConfidence(faces[0]) : 0;
-      const isLive = await this.performLivenessCheck(faces, imageUri);
+      if (!this.mlConfig) {
+        throw new Error('Machine learning configuration missing. Call configureMachineLearning first.');
+      }
 
-      const faceResult: FaceDetectionResult = {
-        faces,
-        imageUri,
-        confidence,
-        isLive,
-      };
+      const faceResult: FaceInferenceResult = await this.moproService.runFaceInference(imageUri, options);
 
       if (this.currentSession) {
         this.currentSession.faceData = faceResult;
@@ -143,32 +117,36 @@ class VerificationService {
 
       return faceResult;
     } catch (error) {
-      throw new Error(`Face detection failed: ${error}`);
+      throw new Error(`Face detection failed: ${error instanceof Error ? error.message : error}`);
     }
   }
 
-  async verifyIDDocument(imageUri: string): Promise<IDVerificationResult> {
+  async verifyIDDocument(imageUri: string, options: ExternalInferenceOptions = {}): Promise<IDVerificationResult> {
     try {
-      // Simulate advanced OCR and document verification
-      const extractedData = await this.performOCR(imageUri);
-      const documentType = this.detectDocumentType(extractedData);
-      const confidence = this.calculateDocumentConfidence(extractedData);
-      const isValid = this.validateDocument(extractedData, documentType);
-      
+      if (!this.mlConfig) {
+        throw new Error('Machine learning configuration missing. Call configureMachineLearning first.');
+      }
+
+      const documentResult: DocumentInferenceResult = await this.moproService.runDocumentInference(imageUri, options);
+
       let faceMatch = 0;
-      if (this.currentSession?.faceData) {
-        faceMatch = await this.compareFaces(
-          this.currentSession.faceData.imageUri,
-          imageUri
-        );
+      if (options.compareWithDocument && this.currentSession?.faceData && documentResult.rawResponse) {
+        const response = documentResult.rawResponse as { faceImage?: string };
+        if (response.faceImage) {
+          const tempFile = `${FileSystem.cacheDirectory}doc-face-${Date.now()}.jpg`;
+          await FileSystem.writeAsStringAsync(tempFile, response.faceImage, { encoding: FileSystem.EncodingType.Base64 });
+          const comparison = await this.compareFaces(this.currentSession.faceData.imageUri, tempFile);
+          faceMatch = comparison;
+        }
       }
 
       const idResult: IDVerificationResult = {
-        documentType,
-        extractedData,
-        confidence,
-        isValid,
+        documentType: documentResult.documentType,
+        extractedData: documentResult.extractedData,
+        confidence: documentResult.confidence,
+        isValid: documentResult.isValid,
         faceMatch,
+        qualityScore: documentResult.qualityScore,
       };
 
       if (this.currentSession) {
@@ -179,7 +157,7 @@ class VerificationService {
 
       return idResult;
     } catch (error) {
-      throw new Error(`ID verification failed: ${error}`);
+      throw new Error(`ID verification failed: ${error instanceof Error ? error.message : error}`);
     }
   }
 
@@ -263,7 +241,7 @@ class VerificationService {
 
       // Calculate final score including ZK proof quality
       const traditionalScore = this.calculateOverallScore();
-      const zkScore = this.calculateZKScore(zkProof, biometricWitness);
+      const zkScore = await this.calculateZKScore(zkProof, biometricWitness);
       const finalScore = (traditionalScore + zkScore) / 2;
       
       this.currentSession.overallScore = finalScore;
@@ -479,15 +457,16 @@ class VerificationService {
       return 0;
     }
     
-    const faceScore = this.currentSession.faceData.confidence * 0.3;
-    const livenessScore = this.currentSession.faceData.isLive ? 0.2 : 0;
-    const idScore = this.currentSession.idData.confidence * 0.3;
-    const faceMatchScore = (this.currentSession.idData.faceMatch || 0) * 0.2;
+    const faceScore = this.currentSession.faceData.confidence * 0.25;
+    const livenessScore = (this.currentSession.faceData.isLive ? 1 : 0) * 0.2;
+    const qualityScore = (this.currentSession.faceData.qualityScore ?? 0.8) * 0.15;
+    const idScore = this.currentSession.idData.confidence * 0.25;
+    const faceMatchScore = (this.currentSession.idData.faceMatch || 0) * 0.15;
     
-    return faceScore + livenessScore + idScore + faceMatchScore;
+    return faceScore + livenessScore + qualityScore + idScore + faceMatchScore;
   }
 
-  private calculateZKScore(zkProof: ZKProof, biometricWitness: BiometricWitness): number {
+  private async calculateZKScore(zkProof: ZKProof, biometricWitness: BiometricWitness): Promise<number> {
     // Calculate score based on ZK proof quality and biometric data
     let score = 0;
     
@@ -497,13 +476,16 @@ class VerificationService {
     }
     
     // Biometric quality score (30%)
-    score += biometricWitness.qualityScore * 0.3;
+    score += (biometricWitness.qualityScore ?? 0.8) * 0.3;
     
     // Liveness score (25%)
-    score += biometricWitness.livenessScore * 0.25;
+    score += (biometricWitness.livenessScore ?? 0.5) * 0.25;
     
     // Proof hash integrity (15%)
-    const expectedHash = CryptoJS.SHA256(JSON.stringify(zkProof.proof)).toString();
+    const expectedHash = await Crypto.digestStringAsync(
+      Crypto.CryptoDigestAlgorithm.SHA256, 
+      JSON.stringify(zkProof.proof)
+    );
     if (expectedHash === zkProof.proofHash) {
       score += 0.15;
     }

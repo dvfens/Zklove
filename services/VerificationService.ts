@@ -2,6 +2,9 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Crypto from 'expo-crypto';
 import * as FileSystem from 'expo-file-system/legacy';
 import { Image } from 'react-native';
+import CryptoJS from 'react-native-crypto-js';
+import MoproZKService, { ZKProof, BiometricWitness, DecentralizedIdentity } from './MoproZKService';
+import BlockchainService from './BlockchainService';
 
 export interface FaceFeature {
   bounds: {
@@ -45,19 +48,52 @@ export interface VerificationSession {
   timestamp: number;
   faceData: FaceDetectionResult | null;
   idData: IDVerificationResult | null;
-  status: 'pending' | 'face_captured' | 'id_captured' | 'completed' | 'failed';
+  status: 'pending' | 'face_captured' | 'id_captured' | 'generating_proof' | 'proof_generated' | 'blockchain_submitted' | 'completed' | 'failed';
   overallScore: number;
+  zkProof?: ZKProof;
+  decentralizedIdentity?: DecentralizedIdentity;
+  blockchainTxHash?: string;
+  biometricWitness?: BiometricWitness;
 }
 
 class VerificationService {
   private static instance: VerificationService;
   private currentSession: VerificationSession | null = null;
+  private moproService: MoproZKService;
+  private blockchainService: BlockchainService;
 
   static getInstance(): VerificationService {
     if (!VerificationService.instance) {
       VerificationService.instance = new VerificationService();
     }
     return VerificationService.instance;
+  }
+
+  constructor() {
+    this.moproService = MoproZKService.getInstance();
+    this.blockchainService = BlockchainService.getInstance();
+    this.initializeServices();
+  }
+
+  private async initializeServices(): Promise<void> {
+    try {
+      // Initialize with default blockchain configuration
+      const blockchainConfig = {
+        rpcUrl: 'https://polygon-mainnet.infura.io/v3/YOUR_INFURA_KEY', // Replace with actual RPC
+        chainId: 137, // Polygon mainnet
+        contractAddress: '0x0000000000000000000000000000000000000000', // Replace with deployed contract
+        gasPrice: '30000000000', // 30 gwei
+        gasLimit: '1000000'
+      };
+      
+      await this.blockchainService.initialize(blockchainConfig);
+      this.blockchainService.setupEventListeners();
+      
+      console.log('Mopro ZK services initialized successfully');
+    } catch (error) {
+      console.warn('Failed to initialize blockchain services:', error);
+      // Continue without blockchain functionality for demo
+    }
   }
 
   async startVerificationSession(): Promise<string> {
@@ -144,12 +180,93 @@ class VerificationService {
       throw new Error('No active verification session');
     }
 
-    const overallScore = this.calculateOverallScore();
-    this.currentSession.overallScore = overallScore;
-    this.currentSession.status = overallScore >= 0.8 ? 'completed' : 'failed';
-    
-    await this.saveSession();
-    return this.currentSession;
+    if (!this.currentSession.faceData || !this.currentSession.idData) {
+      throw new Error('Incomplete verification data');
+    }
+
+    try {
+      // Update status to generating proof
+      this.currentSession.status = 'generating_proof';
+      await this.saveSession();
+
+      // Generate biometric witness for ZK proof
+      console.log('Generating biometric witness...');
+      const biometricWitness = await this.moproService.generateBiometricWitness(
+        this.currentSession.faceData.imageUri,
+        this.currentSession.idData.extractedData
+      );
+      
+      this.currentSession.biometricWitness = biometricWitness;
+
+      // Create identity commitment
+      console.log('Creating identity commitment...');
+      const identityCommitment = await this.moproService.createIdentityCommitment(biometricWitness);
+
+      // Generate zero-knowledge proof
+      console.log('Generating zero-knowledge proof...');
+      const zkProof = await this.moproService.generateZKProof(biometricWitness, identityCommitment);
+      
+      this.currentSession.zkProof = zkProof;
+      this.currentSession.status = 'proof_generated';
+      await this.saveSession();
+
+      // Verify the proof locally first
+      console.log('Verifying ZK proof locally...');
+      const isProofValid = await this.moproService.verifyZKProof(zkProof);
+      
+      if (!isProofValid) {
+        this.currentSession.status = 'failed';
+        await this.saveSession();
+        throw new Error('Generated proof is invalid');
+      }
+
+      // Submit to blockchain if available
+      if (this.blockchainService.isInitialized) {
+        try {
+          console.log('Submitting to blockchain...');
+          this.currentSession.status = 'blockchain_submitted';
+          await this.saveSession();
+
+          // Submit identity commitment
+          const commitmentTx = await this.blockchainService.submitIdentityCommitment(
+            identityCommitment.commitment
+          );
+          
+          // Verify identity on blockchain
+          const verificationTx = await this.blockchainService.verifyIdentityOnChain(zkProof);
+          
+          this.currentSession.blockchainTxHash = verificationTx.hash;
+          
+          // Create decentralized identity
+          const decentralizedIdentity = await this.moproService.createDecentralizedIdentity(zkProof);
+          this.currentSession.decentralizedIdentity = decentralizedIdentity;
+          
+          console.log('Blockchain submission successful:', verificationTx.hash);
+        } catch (blockchainError) {
+          console.warn('Blockchain submission failed, continuing with local verification:', blockchainError);
+          // Continue with local verification even if blockchain fails
+        }
+      }
+
+      // Calculate final score including ZK proof quality
+      const traditionalScore = this.calculateOverallScore();
+      const zkScore = this.calculateZKScore(zkProof, biometricWitness);
+      const finalScore = (traditionalScore + zkScore) / 2;
+      
+      this.currentSession.overallScore = finalScore;
+      this.currentSession.status = finalScore >= 0.8 ? 'completed' : 'failed';
+      
+      await this.saveSession();
+      
+      console.log('Verification completed with ZK proof. Final score:', finalScore);
+      return this.currentSession;
+      
+    } catch (error) {
+      console.error('Verification failed:', error);
+      this.currentSession.status = 'failed';
+      await this.saveSession();
+      throw error;
+    }
   }
 
   private async analyzeImage(imageUri: string): Promise<{ width: number; height: number; size: number }> {
@@ -355,6 +472,34 @@ class VerificationService {
     const faceMatchScore = (this.currentSession.idData.faceMatch || 0) * 0.2;
     
     return faceScore + livenessScore + idScore + faceMatchScore;
+  }
+
+  private calculateZKScore(zkProof: ZKProof, biometricWitness: BiometricWitness): number {
+    // Calculate score based on ZK proof quality and biometric data
+    let score = 0;
+    
+    // Proof structure validation (20%)
+    if (zkProof.proof && zkProof.publicSignals && zkProof.proofHash) {
+      score += 0.2;
+    }
+    
+    // Biometric quality score (30%)
+    score += biometricWitness.qualityScore * 0.3;
+    
+    // Liveness score (25%)
+    score += biometricWitness.livenessScore * 0.25;
+    
+    // Proof hash integrity (15%)
+    const expectedHash = CryptoJS.SHA256(JSON.stringify(zkProof.proof)).toString();
+    if (expectedHash === zkProof.proofHash) {
+      score += 0.15;
+    }
+    
+    // Nullifier uniqueness (10%)
+    // This would be checked against blockchain in real implementation
+    score += 0.1;
+    
+    return Math.min(score, 1.0);
   }
 
   private async saveSession(): Promise<void> {

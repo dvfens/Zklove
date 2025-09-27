@@ -1,15 +1,15 @@
-import React from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  Dimensions,
-  TouchableOpacity,
-} from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+import type { AnonymousCard as AnonymousCardType } from '@/types/dating';
 import { Ionicons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
-import type { AnonymousCard as AnonymousCardType } from '@/types/dating';
+import { LinearGradient } from 'expo-linear-gradient';
+import React from 'react';
+import {
+    Dimensions,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
+} from 'react-native';
 
 const { width } = Dimensions.get('window');
 const CARD_WIDTH = width * 0.85;

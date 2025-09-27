@@ -1,19 +1,17 @@
-import React, { useState, useRef } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  Animated,
-  PanGestureHandler,
-  State,
-  Dimensions,
-  Alert,
-} from 'react-native';
-import { ThemedView } from '@/components/ThemedView';
-import { ThemedText } from '@/components/ThemedText';
-import { Ionicons } from '@expo/vector-icons';
-import AnonymousCard from './AnonymousCard';
+import { ThemedText } from '@/components/themed-text';
+import { ThemedView } from '@/components/themed-view';
 import type { AnonymousCard as AnonymousCardType, DatingProfile } from '@/types/dating';
+import { Ionicons } from '@expo/vector-icons';
+import React, { useRef, useState } from 'react';
+import {
+  Animated,
+  Dimensions,
+  StyleSheet,
+  Text,
+  View
+} from 'react-native';
+import { PanGestureHandler, State } from 'react-native-gesture-handler';
+import AnonymousCard from './AnonymousCard';
 
 const { width, height } = Dimensions.get('window');
 const SWIPE_THRESHOLD = width * 0.3;

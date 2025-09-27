@@ -1,25 +1,26 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  Alert,
-  ActivityIndicator,
-  SafeAreaView,
-  Dimensions,
-} from 'react-native';
-import { ThemedView } from '@/components/ThemedView';
-import { ThemedText } from '@/components/ThemedText';
-import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
+import { ThemedText } from '@/components/themed-text';
+import { ThemedView } from '@/components/themed-view';
 import ZKDatingService from '@/services/ZKDatingService';
 import ZKProofService from '@/services/ZKProofService';
-import SwipeDeck from './SwipeDeck';
-import ProfileSetup from './ProfileSetup';
-import MatchesScreen from './MatchesScreen';
+import type { AnonymousCard, DatingProfile } from '@/types/dating';
+import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
+import React, { useEffect, useState } from 'react';
+import {
+    ActivityIndicator,
+    Alert,
+    Dimensions,
+    SafeAreaView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
+} from 'react-native';
 import AuraDisplay from './AuraDisplay';
-import type { DatingProfile, AnonymousCard } from '@/types/dating';
+import MatchesScreen from './MatchesScreen';
+import OnboardingScreen from './OnboardingScreen';
+import ProfileSetup from './ProfileSetup';
+import SwipeDeck from './SwipeDeck';
 
 const { width, height } = Dimensions.get('window');
 
@@ -36,6 +37,7 @@ export default function DatingScreen({ onBack }: DatingScreenProps) {
   const [auraBalance, setAuraBalance] = useState(0);
   const [candidates, setCandidates] = useState<AnonymousCard[]>([]);
   const [isInitialized, setIsInitialized] = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState(false);
 
   const zkDatingService = ZKDatingService.getInstance();
   const zkProofService = ZKProofService.getInstance();
@@ -47,6 +49,14 @@ export default function DatingScreen({ onBack }: DatingScreenProps) {
   const initializeServices = async () => {
     try {
       setIsLoading(true);
+      
+      // Check if user has seen onboarding
+      const hasSeenOnboarding = false; // In production, check AsyncStorage
+      if (!hasSeenOnboarding) {
+        setShowOnboarding(true);
+        setIsLoading(false);
+        return;
+      }
       
       // Initialize ZK Dating Service
       if (!zkDatingService.isInitialized()) {
@@ -166,6 +176,39 @@ export default function DatingScreen({ onBack }: DatingScreenProps) {
     }
   };
 
+  const handleOnboardingComplete = async () => {
+    setShowOnboarding(false);
+    setIsLoading(true);
+    
+    try {
+      // Initialize services after onboarding
+      if (!zkDatingService.isInitialized()) {
+        await zkDatingService.initialize();
+      }
+      
+      if (!zkDatingService.isConnected()) {
+        await zkDatingService.connectWallet();
+      }
+      
+      // Load user profile
+      const userProfile = await zkDatingService.getProfile();
+      setProfile(userProfile);
+      
+      if (userProfile) {
+        const balance = await zkDatingService.getAuraBalance();
+        setAuraBalance(balance);
+        await loadCandidates();
+        await subscribeToEvents();
+      }
+      
+      setIsInitialized(true);
+    } catch (error) {
+      console.error('Failed to initialize after onboarding:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleSwipe = async (targetId: string, isLike: boolean) => {
     if (!profile) return;
     
@@ -228,6 +271,11 @@ export default function DatingScreen({ onBack }: DatingScreenProps) {
         return null;
     }
   };
+
+  // Show onboarding first
+  if (showOnboarding) {
+    return <OnboardingScreen onComplete={handleOnboardingComplete} />;
+  }
 
   if (isLoading) {
     return (

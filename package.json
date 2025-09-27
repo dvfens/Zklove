@@ -10,9 +10,19 @@
     "web": "expo start --web",
     "lint": "expo lint",
     "clear-cache": "node clear-cache.js",
-    "test-verification": "node test-verification-flow.js"
+    "test-verification": "node test-verification-flow.js",
+    "deploy:mumbai": "node scripts/deploy-production.js polygon_mumbai",
+    "deploy:sepolia": "node scripts/deploy-production.js ethereum_sepolia",
+    "deploy:mainnet": "node scripts/deploy-production.js polygon_mainnet",
+    "build:production": "cross-env NODE_ENV=production expo export --platform all",
+    "build:android": "cross-env NODE_ENV=production eas build --platform android --profile production",
+    "build:ios": "cross-env NODE_ENV=production eas build --platform ios --profile production",
+    "preview:production": "cross-env NODE_ENV=production expo start --no-dev --minify"
   },
   "dependencies": {
+    "@capacitor/android": "^7.4.3",
+    "@capacitor/cli": "^7.4.3",
+    "@capacitor/core": "^7.4.3",
     "@expo/cli": "^54.0.8",
     "@expo/metro-runtime": "~6.1.2",
     "@expo/vector-icons": "^15.0.2",
@@ -27,6 +37,7 @@
     "ethers": "^6.15.0",
     "expo": "~54.0.10",
     "expo-barcode-scanner": "^13.0.1",
+    "expo-blur": "^15.0.7",
     "expo-camera": "^17.0.8",
     "expo-constants": "~18.0.9",
     "expo-crypto": "^15.0.7",
@@ -36,6 +47,8 @@
     "expo-font": "~14.0.8",
     "expo-haptics": "~15.0.7",
     "expo-image": "~3.0.8",
+    "expo-image-picker": "^17.0.8",
+    "expo-linear-gradient": "^15.0.7",
     "expo-linking": "~8.0.8",
     "expo-media-library": "^18.2.0",
     "expo-router": "~6.0.8",
@@ -62,8 +75,10 @@
     "text-encoding": "^0.7.0"
   },
   "devDependencies": {
+    "@types/crypto-js": "^4.2.2",
     "@types/react": "~19.1.0",
     "@types/react-native-crypto-js": "^1.0.3",
+    "cross-env": "^10.0.0",
     "eslint": "^9.25.0",
     "eslint-config-expo": "~10.0.0",
     "typescript": "~5.9.2"

@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { poseidon } from 'circomlibjs';
-import type { ZKProof, DatingProfile, CompatibilityProof, Hobby } from '../types/dating';
+import CryptoJS from 'crypto-js';
+import type { CompatibilityProof, DatingProfile, Hobby, ZKProof } from '../types/dating';
 
 /**
  * ZK Proof Service
@@ -47,8 +47,8 @@ class ZKProofService {
       const bioHash = this.hashString(bio);
       const avatarHash = this.hashString(avatarUri || '');
       
-      // Create commitment using Poseidon hash
-      const commitment = poseidon([nameHash, bioHash, avatarHash, age, this.hashString(salt)]);
+      // Create commitment using hash
+      const commitment = this.createCommitment([nameHash, bioHash, avatarHash, BigInt(age), this.hashString(salt)]);
       
       // Generate ZK proof (simplified - in production use snarkjs)
       const proof = await this.generateMockProof('profile_commitment', {
@@ -88,7 +88,7 @@ class ZKProofService {
       const lngHash = this.hashNumber(coordinates.lng);
       
       // Create commitment
-      const commitment = poseidon([cityHash, latHash, lngHash, this.hashString(salt)]);
+      const commitment = this.createCommitment([cityHash, latHash, lngHash, this.hashString(salt)]);
       
       // Generate proof
       const proof = await this.generateMockProof('location_commitment', {
@@ -129,7 +129,7 @@ class ZKProofService {
       const hobbyHashes = paddedHobbies.map(hobby => this.hashString(hobby));
       
       // Create commitment
-      const commitment = poseidon([...hobbyHashes, this.hashString(salt)]);
+      const commitment = this.createCommitment([...hobbyHashes, this.hashString(salt)]);
       
       // Generate proof
       const proof = await this.generateMockProof('hobbies_commitment', {
@@ -247,6 +247,19 @@ class ZKProofService {
     return BigInt(Math.floor(input * 1000000)); // Convert to integer with 6 decimal places
   }
 
+  private createCommitment(inputs: bigint[]): bigint {
+    // Simple commitment scheme using hash combination
+    // In production, use proper Poseidon hash or similar ZK-friendly hash
+    let combined = '';
+    for (const input of inputs) {
+      combined += input.toString();
+    }
+    
+    const hash = CryptoJS.SHA256(combined).toString();
+    // Convert to bigint, taking first 60 hex chars to stay within field size
+    return BigInt('0x' + hash.substring(0, 60));
+  }
+
   private padAndHashHobbies(hobbies: Hobby[]): bigint[] {
     const paddedHobbies = [...hobbies.slice(0, 5)];
     while (paddedHobbies.length < 5) {
@@ -308,10 +321,19 @@ class ZKProofService {
       ]
     };
     
-    // Store proof locally for debugging
+    // Store proof locally for debugging (convert BigInt to string for JSON)
+    const serializedInputs = Object.fromEntries(
+      Object.entries(inputs).map(([key, value]) => [
+        key, 
+        typeof value === 'bigint' ? value.toString() : 
+        Array.isArray(value) ? value.map(v => typeof v === 'bigint' ? v.toString() : v) : 
+        value
+      ])
+    );
+    
     await AsyncStorage.setItem(
       `zk_proof_${circuitType}_${Date.now()}`,
-      JSON.stringify({ inputs, proof: mockProof })
+      JSON.stringify({ inputs: serializedInputs, proof: mockProof })
     );
     
     return mockProof;

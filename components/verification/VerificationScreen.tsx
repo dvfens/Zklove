@@ -1,23 +1,23 @@
-import React, { useState, useEffect } from 'react';
-import {
-  View,
-  StyleSheet,
-  TouchableOpacity,
-  Text,
-  ScrollView,
-  Dimensions,
-  Alert,
-} from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { ThemedView } from '@/components/themed-view';
 import { ThemedText } from '@/components/themed-text';
+import { ThemedView } from '@/components/themed-view';
+import VerificationService, {
+    FaceDetectionResult,
+    IDVerificationResult,
+    VerificationSession,
+} from '@/services/VerificationService';
+import { Ionicons } from '@expo/vector-icons';
+import React, { useEffect, useState } from 'react';
+import {
+    Alert,
+    Dimensions,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
+} from 'react-native';
 import FaceCapture from './FaceCapture';
 import IDCapture from './IDCapture';
-import VerificationService, {
-  FaceDetectionResult,
-  IDVerificationResult,
-  VerificationSession,
-} from '@/services/VerificationService';
 
 const { width } = Dimensions.get('window');
 

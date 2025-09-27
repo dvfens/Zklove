@@ -1,5 +1,5 @@
-import { ethers } from 'ethers';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { ethers } from 'ethers';
 import CryptoJS from 'react-native-crypto-js';
 
 export interface WalletInfo {
@@ -68,8 +68,17 @@ class Web3WalletService {
   // Create new wallet
   async createWallet(password?: string): Promise<WalletInfo> {
     try {
-      // Generate new wallet
-      this.wallet = ethers.Wallet.createRandom();
+      // Generate new wallet with fallback for React Native
+      try {
+        const randomWallet = ethers.Wallet.createRandom();
+        this.wallet = new ethers.Wallet(randomWallet.privateKey);
+      } catch (randomError) {
+        console.warn('Using fallback wallet generation method:', randomError);
+        // Fallback: create wallet from deterministic seed
+        const seed = 'zkLove_wallet_' + Date.now() + '_' + Math.random();
+        const hash = ethers.keccak256(ethers.toUtf8Bytes(seed));
+        this.wallet = new ethers.Wallet(hash);
+      }
       
       if (this.provider) {
         this.wallet = this.wallet.connect(this.provider);
@@ -145,7 +154,7 @@ class Web3WalletService {
 
       return {
         address: this.wallet.address,
-        publicKey: this.wallet.publicKey,
+        publicKey: this.wallet.signingKey.publicKey,
         balance: ethers.formatEther(balance),
         network: {
           chainId: Number(network.chainId),
@@ -420,7 +429,7 @@ class Web3WalletService {
       const walletData = {
         privateKey: this.wallet.privateKey,
         address: this.wallet.address,
-        publicKey: this.wallet.publicKey,
+        publicKey: this.wallet.signingKey.publicKey,
         mnemonic: (this.wallet as any).mnemonic?.phrase || null,
         timestamp: Date.now()
       };
@@ -529,7 +538,7 @@ class Web3WalletService {
   }
 
   get publicKey(): string | null {
-    return this.wallet?.publicKey || null;
+    return this.wallet?.signingKey.publicKey || null;
   }
 
   // Cleanup methods

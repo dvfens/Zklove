@@ -65,9 +65,18 @@ class BlockchainService {
       // Get or create wallet
       let privateKey = await AsyncStorage.getItem('zkLove_wallet_key');
       if (!privateKey) {
-        const randomWallet = ethers.Wallet.createRandom();
-        privateKey = randomWallet.privateKey;
-        await AsyncStorage.setItem('zkLove_wallet_key', privateKey);
+        try {
+          const randomWallet = ethers.Wallet.createRandom();
+          privateKey = randomWallet.privateKey;
+          await AsyncStorage.setItem('zkLove_wallet_key', privateKey);
+        } catch (randomError) {
+          console.warn('Failed to create random wallet, using fallback method:', randomError);
+          // Fallback: create wallet from a deterministic seed
+          const fallbackSeed = 'zkLove_fallback_seed_' + Date.now().toString();
+          const hash = ethers.keccak256(ethers.toUtf8Bytes(fallbackSeed));
+          privateKey = hash;
+          await AsyncStorage.setItem('zkLove_wallet_key', privateKey);
+        }
       }
       
       this.wallet = new ethers.Wallet(privateKey, this.provider);

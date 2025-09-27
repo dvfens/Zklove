@@ -72,27 +72,35 @@ class VerificationService {
   constructor() {
     this.moproService = MoproZKService.getInstance();
     this.blockchainService = BlockchainService.getInstance();
-    this.initializeServices();
+    // Don't initialize blockchain services immediately - do it on-demand
   }
 
   private async initializeServices(): Promise<void> {
     try {
-      // Initialize with default blockchain configuration
+      // Initialize with testnet configuration for development
       const blockchainConfig = {
-        rpcUrl: 'https://polygon-mainnet.infura.io/v3/YOUR_INFURA_KEY', // Replace with actual RPC
-        chainId: 137, // Polygon mainnet
-        contractAddress: '0x0000000000000000000000000000000000000000', // Replace with deployed contract
-        gasPrice: '30000000000', // 30 gwei
+        rpcUrl: 'https://rpc-mumbai.maticvigil.com', // Polygon Mumbai testnet (free)
+        chainId: 80001, // Polygon Mumbai testnet
+        contractAddress: '0x1234567890123456789012345678901234567890', // Demo contract address
+        gasPrice: '20000000000', // 20 gwei
         gasLimit: '1000000'
       };
       
+      console.log('Initializing blockchain services with testnet...');
       await this.blockchainService.initialize(blockchainConfig);
       this.blockchainService.setupEventListeners();
       
       console.log('Mopro ZK services initialized successfully');
     } catch (error) {
-      console.warn('Failed to initialize blockchain services:', error);
+      console.warn('Failed to initialize blockchain services (continuing in demo mode):', error);
       // Continue without blockchain functionality for demo
+    }
+  }
+
+  // Initialize blockchain services on-demand
+  private async ensureBlockchainInitialized(): Promise<void> {
+    if (!this.blockchainService.isInitialized) {
+      await this.initializeServices();
     }
   }
 
@@ -220,9 +228,12 @@ class VerificationService {
         throw new Error('Generated proof is invalid');
       }
 
-      // Submit to blockchain if available
-      if (this.blockchainService.isInitialized) {
-        try {
+      // Try to initialize and submit to blockchain
+      try {
+        console.log('Attempting blockchain initialization...');
+        await this.ensureBlockchainInitialized();
+        
+        if (this.blockchainService.isInitialized) {
           console.log('Submitting to blockchain...');
           this.currentSession.status = 'blockchain_submitted';
           await this.saveSession();
@@ -242,10 +253,12 @@ class VerificationService {
           this.currentSession.decentralizedIdentity = decentralizedIdentity;
           
           console.log('Blockchain submission successful:', verificationTx.hash);
-        } catch (blockchainError) {
-          console.warn('Blockchain submission failed, continuing with local verification:', blockchainError);
-          // Continue with local verification even if blockchain fails
+        } else {
+          console.log('Blockchain not available, proceeding with local verification only');
         }
+      } catch (blockchainError) {
+        console.warn('Blockchain operations failed, continuing with local verification:', blockchainError);
+        // Continue with local verification even if blockchain fails
       }
 
       // Calculate final score including ZK proof quality

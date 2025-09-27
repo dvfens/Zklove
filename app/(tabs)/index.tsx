@@ -256,7 +256,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-start',
     backgroundColor: '#F0F8FF',
-    padding: 16,git a
+    padding: 16,
     borderRadius: 12,
     marginTop: 20,
     borderLeftWidth: 4,

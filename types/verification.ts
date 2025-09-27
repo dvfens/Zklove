@@ -37,11 +37,18 @@ export interface IDExtractedData {
   fatherName?: string;
   gender?: string;
   pincode?: string;
+  // ETHGlobal badge fields
+  email?: string;
+  githubUsername?: string;
+  twitterHandle?: string;
+  badgeId?: string;
+  participantId?: string;
+  eventId?: string;
   rawText?: string;
 }
 
 export interface IDVerificationResult {
-  documentType: 'passport' | 'license' | 'id_card' | 'aadhaar' | 'unknown';
+  documentType: 'passport' | 'license' | 'id_card' | 'aadhaar' | 'ethglobal_badge' | 'unknown';
   extractedData: IDExtractedData;
   confidence: number;
   isValid: boolean;
@@ -49,5 +56,6 @@ export interface IDVerificationResult {
   qualityScore?: number;
   analyzedImageUri?: string;
   rawResponse?: unknown;
+  verificationMethod?: 'ocr' | 'nfc' | 'qr' | 'manual';
 }
 

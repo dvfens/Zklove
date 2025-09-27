@@ -23,13 +23,24 @@ config.resolver.sourceExts = [...config.resolver.sourceExts, 'js', 'jsx', 'ts', 
 // Exclude problematic files and directories
 config.resolver.blacklistRE = /InternalBytecode\.js$/;
 
+// Add resolver configuration for crypto modules
+config.resolver.alias = {
+  ...config.resolver.alias,
+  'crypto': 'react-native-crypto-js',
+  'stream': 'stream-browserify',
+  'buffer': 'buffer',
+};
+
 // Add transformer configuration to handle problematic files
 config.transformer = {
   ...config.transformer,
   minifierConfig: {
     ...config.transformer.minifierConfig,
-    // Exclude problematic files from minification
-    exclude: [/InternalBytecode\.js$/]
+    // Configure minifier for production builds
+    keep_fnames: true,
+    mangle: {
+      keep_fnames: true
+    }
   }
 };
 

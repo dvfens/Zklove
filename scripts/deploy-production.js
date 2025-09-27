@@ -17,7 +17,7 @@ const NETWORKS = {
   },
   polygon_mumbai: {
     name: 'Polygon Mumbai Testnet',
-    rpcUrl: 'https://polygon-testnet.public.blastapi.io',
+    rpcUrl: 'https://polygon-mumbai.infura.io/v3/9aa3d95b3bc440fa88ea12eaa4456161',
     chainId: 80001,
     currency: 'MATIC',
     blockExplorer: 'https://mumbai.polygonscan.com',

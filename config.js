@@ -86,6 +86,9 @@ export const config = {
       zkDating: process.env.ZK_DATING_CONTRACT || '0x8ba1f109551bD432803012645Hac136c8f4c7A6e'
     },
     
+    // Use mock mode when blockchain is unavailable
+    useMockBlockchain: true,
+    
     gas: {
       maxGasPrice: '20000000000', // 20 gwei
       gasLimit: '500000'

@@ -1,129 +1,80 @@
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import SelfProtocolSDK from '@/services/SelfProtocolSDK';
+import SelfProtocolProduction from '@/services/SelfProtocolProduction';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useState } from 'react';
 import {
-    Alert,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View
+  Alert,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
 } from 'react-native';
+import AadhaarQRScanner from './AadhaarQRScanner';
+import AadhaarTestQRScanner from './AadhaarTestQRScanner';
 
 interface AadhaarVerificationProps {
   onComplete: (result: any) => void;
   onCancel: () => void;
 }
 
-interface AadhaarQRData {
-  uid: string;
-  name: string;
-  gender: string;
-  yob: string;
-  co: string;
-  vtc: string;
-  po: string;
-  dist: string;
-  state: string;
-  pc: string;
-}
-
 export default function AadhaarVerification({ onComplete, onCancel }: AadhaarVerificationProps) {
-  const [step, setStep] = useState<'intro' | 'scan' | 'processing' | 'result'>('intro');
+  const [step, setStep] = useState<'intro' | 'scan' | 'test' | 'processing' | 'result'>('intro');
   const [isLoading, setIsLoading] = useState(false);
   const [verificationResult, setVerificationResult] = useState<any>(null);
-  const [qrData, setQrData] = useState<AadhaarQRData | null>(null);
 
-  const selfProtocolSDK = new SelfProtocolSDK();
+  const selfProtocolService = new SelfProtocolProduction();
 
-  const handleQRCodeScanned = async (qrCodeData: string) => {
+  const handleQRCodeScanned = async (qrData: string) => {
     setIsLoading(true);
     setStep('processing');
     
     try {
-      // Parse QR demographic payload
-      const parsedData = parseAadhaarQR(qrCodeData);
-      setQrData(parsedData);
+      console.log('Starting Aadhaar verification with QR data...');
       
-      // Normalize fields (name capitalization, DOB format)
-      const normalizedData = normalizeAadhaarData(parsedData);
+      // Complete Aadhaar verification using Self Protocol
+      const result = await selfProtocolService.verifyAadhaar(qrData, [
+        'age', 
+        'nationality', 
+        'uniqueness'
+      ]);
       
-      // Derive nullifier using last-4 + name + DOB + gender (per Self spec)
-      const nullifier = deriveNullifier(normalizedData);
+      console.log('Verification result:', result);
       
-      // Generate zk-proof for requested disclosures (age, nationality, uniqueness, etc.)
-      const zkProof = await selfProtocolSDK.generateZKProof({
-        demographicData: normalizedData,
-        nullifier: nullifier,
-        requestedDisclosures: ['age', 'nationality', 'uniqueness']
-      });
-      
-      // Verify proof server-side using Self's backend verifier
-      const verificationResult = await selfProtocolSDK.verifyProof(zkProof);
-      
-      if (verificationResult.verified) {
-        setVerificationResult({
-          success: true,
-          attributes: verificationResult.attributes,
-          nullifier: nullifier,
-          zkProof: zkProof,
-          demographicData: normalizedData
-        });
+      if (result.success) {
+        // Store verification result
+        await selfProtocolService.storeVerificationResult(result);
+        
+        setVerificationResult(result);
         setStep('result');
       } else {
         Alert.alert('Verification Failed', 'Aadhaar verification failed. Please try again.');
         setStep('intro');
       }
     } catch (error) {
-      console.error('Aadhaar QR verification failed:', error);
-      Alert.alert('Verification Failed', 'Failed to process Aadhaar QR code. Please try again.');
+      console.error('Aadhaar verification error:', error);
+      
+      // More specific error messages
+      let errorMessage = 'Aadhaar verification failed. Please try again.';
+      
+      if (error instanceof Error) {
+        if (error.message.includes('parse') || error.message.includes('Invalid')) {
+          errorMessage = 'Invalid QR code format. Please scan a valid Aadhaar QR code from your mAadhaar app or UIDAI PDF.';
+        } else if (error.message.includes('network') || error.message.includes('fetch')) {
+          errorMessage = 'Network error. Please check your internet connection and try again.';
+        } else if (error.message.includes('verification failed')) {
+          errorMessage = 'Aadhaar verification failed. Please ensure you\'re using a valid Aadhaar QR code.';
+        } else {
+          errorMessage = error.message;
+        }
+      }
+      
+      Alert.alert('Verification Error', errorMessage);
       setStep('intro');
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const parseAadhaarQR = (qrData: string): AadhaarQRData => {
-    // Parse mAadhaar QR code or UIDAI PDF QR code
-    // This is a simplified parser - in production, use proper QR parsing library
-    try {
-      const data = JSON.parse(qrData);
-      return {
-        uid: data.uid || '',
-        name: data.name || '',
-        gender: data.gender || '',
-        yob: data.yob || '',
-        co: data.co || '',
-        vtc: data.vtc || '',
-        po: data.po || '',
-        dist: data.dist || '',
-        state: data.state || '',
-        pc: data.pc || ''
-      };
-    } catch (error) {
-      throw new Error('Invalid Aadhaar QR code format');
-    }
-  };
-
-  const normalizeAadhaarData = (data: AadhaarQRData) => {
-    return {
-      ...data,
-      name: data.name.toUpperCase().trim(),
-      dob: `${data.yob}-01-01`, // Convert year to full date
-      gender: data.gender.toUpperCase(),
-      address: `${data.co}, ${data.vtc}, ${data.po}, ${data.dist}, ${data.state} - ${data.pc}`
-    };
-  };
-
-  const deriveNullifier = (data: any): string => {
-    // Derive nullifier using last-4 + name + DOB + gender (per Self spec)
-    const last4 = data.uid.slice(-4);
-    const nullifierInput = `${last4}${data.name}${data.dob}${data.gender}`;
-    
-    // In production, use proper cryptographic hash
-    return btoa(nullifierInput); // Simplified for demo
   };
 
   const renderIntroScreen = () => (
@@ -169,7 +120,7 @@ export default function AadhaarVerification({ onComplete, onCancel }: AadhaarVer
               <ThemedText style={styles.stepNumberText}>3</ThemedText>
             </View>
             <View style={styles.stepContent}>
-              <ThemedText style={styles.stepTitle}>Generate Proof</ThemedText>
+              <ThemedText style={styles.stepTitle}>Generate ZK Proof</ThemedText>
               <ThemedText style={styles.stepDescription}>
                 Create zero-knowledge proof for age, nationality, uniqueness
               </ThemedText>
@@ -183,7 +134,7 @@ export default function AadhaarVerification({ onComplete, onCancel }: AadhaarVer
             <View style={styles.stepContent}>
               <ThemedText style={styles.stepTitle}>Verify & Complete</ThemedText>
               <ThemedText style={styles.stepDescription}>
-                Verify proof and get verification result
+                Verify proof with Self Protocol backend
               </ThemedText>
             </View>
           </View>
@@ -192,8 +143,33 @@ export default function AadhaarVerification({ onComplete, onCancel }: AadhaarVer
         <View style={styles.privacyNote}>
           <Ionicons name="shield-checkmark" size={20} color="#34C759" />
           <Text style={styles.privacyText}>
-            Your Aadhaar data is processed locally. Only privacy-preserving proofs are generated and shared.
+            Your Aadhaar data is processed locally. Only privacy-preserving proofs are generated and shared with Self Protocol.
           </Text>
+        </View>
+
+        <View style={styles.securityFeatures}>
+          <ThemedText style={styles.sectionTitle}>Security Features</ThemedText>
+          
+          <View style={styles.featureItem}>
+            <Ionicons name="lock-closed" size={20} color="#34C759" />
+            <ThemedText style={styles.featureText}>
+              Zero-knowledge proofs - no private data exposed
+            </ThemedText>
+          </View>
+          
+          <View style={styles.featureItem}>
+            <Ionicons name="finger-print" size={20} color="#34C759" />
+            <ThemedText style={styles.featureText}>
+              Nullifier-based uniqueness verification
+            </ThemedText>
+          </View>
+          
+          <View style={styles.featureItem}>
+            <Ionicons name="shield" size={20} color="#34C759" />
+            <ThemedText style={styles.featureText}>
+              Self Protocol backend verification
+            </ThemedText>
+          </View>
         </View>
       </ScrollView>
 
@@ -205,6 +181,13 @@ export default function AadhaarVerification({ onComplete, onCancel }: AadhaarVer
           <Text style={styles.scanButtonText}>Scan Aadhaar QR Code</Text>
         </TouchableOpacity>
 
+        <TouchableOpacity
+          style={styles.testButton}
+          onPress={() => setStep('test')}
+        >
+          <Text style={styles.testButtonText}>Test QR Codes (Development)</Text>
+        </TouchableOpacity>
+
         <TouchableOpacity style={styles.cancelButton} onPress={onCancel}>
           <Text style={styles.cancelButtonText}>Cancel</Text>
         </TouchableOpacity>
@@ -213,53 +196,17 @@ export default function AadhaarVerification({ onComplete, onCancel }: AadhaarVer
   );
 
   const renderScanScreen = () => (
-    <ThemedView style={styles.container}>
-      <View style={styles.scanHeader}>
-        <Ionicons name="qr-code" size={60} color="#007AFF" />
-        <ThemedText style={styles.scanTitle}>Scan Aadhaar QR Code</ThemedText>
-        <ThemedText style={styles.scanSubtitle}>
-          Point your camera at the QR code from mAadhaar app or UIDAI PDF
-        </ThemedText>
-      </View>
+    <AadhaarQRScanner
+      onQRCodeScanned={handleQRCodeScanned}
+      onCancel={() => setStep('intro')}
+    />
+  );
 
-      <View style={styles.scannerContainer}>
-        <View style={styles.scannerPlaceholder}>
-          <Ionicons name="camera" size={80} color="#666" />
-          <ThemedText style={styles.scannerText}>QR Code Scanner</ThemedText>
-          <ThemedText style={styles.scannerSubtext}>
-            In production, integrate with react-native-qrcode-scanner
-          </ThemedText>
-        </View>
-      </View>
-
-      <View style={styles.buttonContainer}>
-        <TouchableOpacity
-          style={styles.demoButton}
-          onPress={() => {
-            // Demo QR data for testing
-            const demoQRData = JSON.stringify({
-              uid: "123456789012",
-              name: "JOHN DOE",
-              gender: "M",
-              yob: "1990",
-              co: "123 Main Street",
-              vtc: "Sample Village",
-              po: "Sample Post Office",
-              dist: "Sample District",
-              state: "Sample State",
-              pc: "123456"
-            });
-            handleQRCodeScanned(demoQRData);
-          }}
-        >
-          <Text style={styles.demoButtonText}>Use Demo QR Code</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.backButton} onPress={() => setStep('intro')}>
-          <Text style={styles.backButtonText}>Back</Text>
-        </TouchableOpacity>
-      </View>
-    </ThemedView>
+  const renderTestScreen = () => (
+    <AadhaarTestQRScanner
+      onQRCodeScanned={handleQRCodeScanned}
+      onCancel={() => setStep('intro')}
+    />
   );
 
   const renderProcessingScreen = () => (
@@ -281,8 +228,16 @@ export default function AadhaarVerification({ onComplete, onCancel }: AadhaarVer
             <ThemedText style={styles.processingStepText}>Data Normalized</ThemedText>
           </View>
           <View style={styles.processingStep}>
+            <Ionicons name="checkmark-circle" size={20} color="#34C759" />
+            <ThemedText style={styles.processingStepText}>Nullifier Generated</ThemedText>
+          </View>
+          <View style={styles.processingStep}>
             <Ionicons name="sync" size={20} color="#007AFF" />
             <ThemedText style={styles.processingStepText}>Generating ZK Proof...</ThemedText>
+          </View>
+          <View style={styles.processingStep}>
+            <Ionicons name="hourglass" size={20} color="#FF9500" />
+            <ThemedText style={styles.processingStepText}>Verifying with Self Protocol...</ThemedText>
           </View>
         </View>
       </View>
@@ -291,6 +246,8 @@ export default function AadhaarVerification({ onComplete, onCancel }: AadhaarVer
 
   const renderResultScreen = () => {
     if (!verificationResult) return null;
+
+    const { demographicData, nullifier, zkProof, verificationResult: verification } = verificationResult;
 
     return (
       <ThemedView style={styles.container}>
@@ -313,28 +270,35 @@ export default function AadhaarVerification({ onComplete, onCancel }: AadhaarVer
             <View style={styles.resultItem}>
               <Ionicons name="person" size={20} color="#34C759" />
               <ThemedText style={styles.resultText}>
-                Name: {verificationResult.demographicData.name}
+                Name: {demographicData.name}
               </ThemedText>
             </View>
 
             <View style={styles.resultItem}>
               <Ionicons name="calendar" size={20} color="#34C759" />
               <ThemedText style={styles.resultText}>
-                Age Verified: {verificationResult.attributes.age ? 'Passed' : 'Failed'}
+                Age Verified: {verification.attributes.age ? 'Passed' : 'Failed'}
               </ThemedText>
             </View>
 
             <View style={styles.resultItem}>
               <Ionicons name="globe" size={20} color="#34C759" />
               <ThemedText style={styles.resultText}>
-                Nationality: {verificationResult.attributes.nationality || 'Indian'}
+                Nationality: {verification.attributes.nationality}
               </ThemedText>
             </View>
 
             <View style={styles.resultItem}>
               <Ionicons name="finger-print" size={20} color="#34C759" />
               <ThemedText style={styles.resultText}>
-                Uniqueness: {verificationResult.attributes.uniqueness ? 'Verified' : 'Failed'}
+                Uniqueness: {verification.attributes.uniqueness ? 'Verified' : 'Failed'}
+              </ThemedText>
+            </View>
+
+            <View style={styles.confidenceContainer}>
+              <ThemedText style={styles.confidenceLabel}>Confidence Score</ThemedText>
+              <ThemedText style={styles.confidenceValue}>
+                {Math.round(verification.confidence * 100)}%
               </ThemedText>
             </View>
 
@@ -343,13 +307,19 @@ export default function AadhaarVerification({ onComplete, onCancel }: AadhaarVer
               <View style={styles.nullifierItem}>
                 <Text style={styles.nullifierLabel}>Nullifier:</Text>
                 <Text style={styles.nullifierValue}>
-                  {verificationResult.nullifier.substring(0, 20)}...
+                  {nullifier.substring(0, 20)}...
                 </Text>
               </View>
               <View style={styles.nullifierItem}>
                 <Text style={styles.nullifierLabel}>ZK Proof Hash:</Text>
                 <Text style={styles.nullifierValue}>
-                  {verificationResult.zkProof.proofHash.substring(0, 20)}...
+                  {zkProof.proofHash.substring(0, 20)}...
+                </Text>
+              </View>
+              <View style={styles.nullifierItem}>
+                <Text style={styles.nullifierLabel}>Identity Commitment:</Text>
+                <Text style={styles.nullifierValue}>
+                  {zkProof.identityCommitment.substring(0, 20)}...
                 </Text>
               </View>
             </View>
@@ -380,6 +350,8 @@ export default function AadhaarVerification({ onComplete, onCancel }: AadhaarVer
       return renderIntroScreen();
     case 'scan':
       return renderScanScreen();
+    case 'test':
+      return renderTestScreen();
     case 'processing':
       return renderProcessingScreen();
     case 'result':
@@ -463,6 +435,7 @@ const styles = StyleSheet.create({
     padding: 15,
     borderRadius: 10,
     marginTop: 20,
+    marginBottom: 20,
   },
   privacyText: {
     flex: 1,
@@ -471,53 +444,17 @@ const styles = StyleSheet.create({
     lineHeight: 16,
     color: '#333333',
   },
-  scanHeader: {
+  securityFeatures: {
+    marginBottom: 30,
+  },
+  featureItem: {
+    flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 40,
-    paddingTop: 40,
+    marginBottom: 15,
   },
-  scanTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    textAlign: 'center',
-    marginTop: 20,
-    marginBottom: 10,
-  },
-  scanSubtitle: {
+  featureText: {
     fontSize: 16,
-    textAlign: 'center',
-    opacity: 0.7,
-    lineHeight: 22,
-  },
-  scannerContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 40,
-  },
-  scannerPlaceholder: {
-    width: 300,
-    height: 300,
-    backgroundColor: '#F8F9FA',
-    borderRadius: 15,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: '#E9ECEF',
-    borderStyle: 'dashed',
-  },
-  scannerText: {
-    fontSize: 18,
-    fontWeight: '600',
-    marginTop: 15,
-    color: '#666',
-  },
-  scannerSubtext: {
-    fontSize: 12,
-    textAlign: 'center',
-    marginTop: 5,
-    color: '#999',
-    paddingHorizontal: 20,
+    marginLeft: 10,
   },
   processingContent: {
     flex: 1,
@@ -581,8 +518,25 @@ const styles = StyleSheet.create({
     fontSize: 16,
     marginLeft: 10,
   },
-  nullifierContainer: {
+  confidenceContainer: {
     backgroundColor: '#F0F8FF',
+    padding: 20,
+    borderRadius: 12,
+    alignItems: 'center',
+    marginVertical: 20,
+  },
+  confidenceLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 5,
+  },
+  confidenceValue: {
+    fontSize: 32,
+    fontWeight: 'bold',
+    color: '#007AFF',
+  },
+  nullifierContainer: {
+    backgroundColor: '#F0FFF4',
     padding: 20,
     borderRadius: 12,
     marginTop: 20,
@@ -619,14 +573,15 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '600',
   },
-  demoButton: {
-    backgroundColor: '#34C759',
+
+  testButton: {
+    backgroundColor: '#FF9500',
     paddingVertical: 16,
     borderRadius: 25,
     alignItems: 'center',
     marginBottom: 15,
   },
-  demoButtonText: {
+  testButtonText: {
     color: 'white',
     fontSize: 18,
     fontWeight: '600',
@@ -651,18 +606,6 @@ const styles = StyleSheet.create({
     marginBottom: 15,
   },
   retryButtonText: {
-    color: 'white',
-    fontSize: 18,
-    fontWeight: '600',
-  },
-  backButton: {
-    backgroundColor: '#6C757D',
-    paddingVertical: 16,
-    borderRadius: 25,
-    alignItems: 'center',
-    marginBottom: 15,
-  },
-  backButtonText: {
     color: 'white',
     fontSize: 18,
     fontWeight: '600',

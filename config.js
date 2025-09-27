@@ -163,10 +163,11 @@ export const config = {
   selfProtocol: {
     // SDK Configuration
     appId: SELF_PROTOCOL_API_KEY,
-    secretKey: SELF_PROTOCOL_SECRET_KEY,
-    endpoint: SELF_PROTOCOL_ENDPOINT,
+    appSecret: SELF_PROTOCOL_SECRET_KEY,
+    baseUrl: SELF_PROTOCOL_ENDPOINT,
     verificationEndpoint: SELF_PROTOCOL_VERIFICATION_ENDPOINT,
     qrCodeEndpoint: process.env.SELF_PROTOCOL_QR_ENDPOINT || 'https://qr.selfprotocol.com',
+    proofEndpoint: process.env.SELF_PROTOCOL_PROOF_ENDPOINT || 'https://api.self.xyz/v1/proof',
     
     // Privacy Settings
     dataRetentionDays: parseInt(SELF_PROTOCOL_DATA_RETENTION_DAYS),

@@ -1,15 +1,15 @@
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Ionicons } from '@expo/vector-icons';
-import { BarCodeScanner } from 'expo-barcode-scanner';
-import React, { useState, useEffect } from 'react';
+import { CameraView, useCameraPermissions } from 'expo-camera';
+import React, { useState } from 'react';
 import {
-    Alert,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
-    Dimensions
+  Alert,
+  Dimensions,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
 } from 'react-native';
 
 interface AadhaarQRScannerProps {
@@ -20,18 +20,9 @@ interface AadhaarQRScannerProps {
 const { width, height } = Dimensions.get('window');
 
 export default function AadhaarQRScanner({ onQRCodeScanned, onCancel }: AadhaarQRScannerProps) {
-  const [hasPermission, setHasPermission] = useState<boolean | null>(null);
+  const [permission, requestPermission] = useCameraPermissions();
   const [scanned, setScanned] = useState(false);
   const [isScanning, setIsScanning] = useState(true);
-
-  useEffect(() => {
-    getCameraPermissions();
-  }, []);
-
-  const getCameraPermissions = async () => {
-    const { status } = await BarCodeScanner.requestPermissionsAsync();
-    setHasPermission(status === 'granted');
-  };
 
   const handleBarCodeScanned = ({ type, data }: { type: string; data: string }) => {
     if (scanned) return;
@@ -39,13 +30,18 @@ export default function AadhaarQRScanner({ onQRCodeScanned, onCancel }: AadhaarQ
     setScanned(true);
     setIsScanning(false);
     
-    // Validate that this is an Aadhaar QR code
-    if (isValidAadhaarQR(data)) {
+    console.log('QR Code scanned:', { type, data: data.substring(0, 100) + '...' });
+    console.log('QR Data length:', data.length);
+    console.log('QR Data preview:', data.substring(0, 100) + '...');
+    console.log('QR Data ends with:', data.substring(data.length - 20));
+    
+    // Always try to process the QR code - let Self Protocol handle validation
+    try {
       onQRCodeScanned(data);
-    } else {
+    } catch (error) {
       Alert.alert(
-        'Invalid QR Code',
-        'This doesn\'t appear to be a valid Aadhaar QR code. Please scan the QR code from your mAadhaar app or UIDAI PDF.',
+        'QR Code Processing Error',
+        'Failed to process the QR code. Please ensure you\'re scanning a valid Aadhaar QR code.',
         [
           { text: 'Try Again', onPress: () => {
             setScanned(false);
@@ -59,16 +55,22 @@ export default function AadhaarQRScanner({ onQRCodeScanned, onCancel }: AadhaarQ
 
   const isValidAadhaarQR = (data: string): boolean => {
     try {
-      // Check if it's a valid Aadhaar QR format
+      // Check if it's a valid Aadhaar QR format (JSON from mAadhaar)
       const parsed = JSON.parse(data);
-      return parsed.uid && parsed.name && parsed.gender && parsed.yob;
+      return parsed.uid && parsed.name && (parsed.gender || parsed.sex) && (parsed.yob || parsed.dob);
     } catch {
       // Check for UIDAI PDF QR format (base64 encoded)
       try {
         const decoded = atob(data);
         return decoded.includes('uid') && decoded.includes('name');
       } catch {
-        return false;
+        // Check for raw Aadhaar data patterns
+        const hasAadhaarPattern = /^\d{12}$/.test(data) || 
+                                 data.includes('uid') || 
+                                 data.includes('name') || 
+                                 data.includes('aadhaar') ||
+                                 data.includes('Aadhaar');
+        return hasAadhaarPattern;
       }
     }
   };
@@ -78,7 +80,7 @@ export default function AadhaarQRScanner({ onQRCodeScanned, onCancel }: AadhaarQ
     setIsScanning(true);
   };
 
-  if (hasPermission === null) {
+  if (!permission) {
     return (
       <ThemedView style={styles.container}>
         <View style={styles.permissionContainer}>
@@ -89,11 +91,11 @@ export default function AadhaarQRScanner({ onQRCodeScanned, onCancel }: AadhaarQ
     );
   }
 
-  if (hasPermission === false) {
+  if (!permission.granted) {
     return (
       <ThemedView style={styles.container}>
         <View style={styles.permissionContainer}>
-          <Ionicons name="camera-off" size={60} color="#FF3B30" />
+          <Ionicons name="camera" size={60} color="#FF3B30" />
           <ThemedText style={styles.permissionTitle}>Camera Permission Required</ThemedText>
           <ThemedText style={styles.permissionText}>
             We need camera access to scan your Aadhaar QR code. Please enable camera permissions in your device settings.
@@ -117,8 +119,11 @@ export default function AadhaarQRScanner({ onQRCodeScanned, onCancel }: AadhaarQ
       </View>
 
       <View style={styles.scannerContainer}>
-        <BarCodeScanner
-          onBarCodeScanned={scanned ? undefined : handleBarCodeScanned}
+        <CameraView
+          onBarcodeScanned={scanned ? undefined : handleBarCodeScanned}
+          barcodeScannerSettings={{
+            barcodeTypes: ['qr', 'pdf417'],
+          }}
           style={styles.scanner}
         />
         
@@ -145,19 +150,19 @@ export default function AadhaarQRScanner({ onQRCodeScanned, onCancel }: AadhaarQ
         <View style={styles.instructionItem}>
           <Ionicons name="phone-portrait" size={20} color="#007AFF" />
           <ThemedText style={styles.instructionText}>
-            Open your mAadhaar app and display the QR code
+            Use mAadhaar app QR code (recommended)
           </ThemedText>
         </View>
         <View style={styles.instructionItem}>
           <Ionicons name="document-text" size={20} color="#007AFF" />
           <ThemedText style={styles.instructionText}>
-            Or scan the QR code from your UIDAI PDF
+            Or use UIDAI PDF QR code
           </ThemedText>
         </View>
         <View style={styles.instructionItem}>
-          <Ionicons name="qr-code" size={20} color="#007AFF" />
+          <Ionicons name="warning" size={20} color="#FF9500" />
           <ThemedText style={styles.instructionText}>
-            Position the QR code within the frame above
+            Physical Aadhaar card QR codes are encrypted and not supported
           </ThemedText>
         </View>
       </View>

@@ -20,7 +20,20 @@ config.resolver.resolverMainFields = ['react-native', 'browser', 'main'];
 // Fix for InternalBytecode.js issue
 config.resolver.sourceExts = [...config.resolver.sourceExts, 'js', 'jsx', 'ts', 'tsx'];
 
-// Exclude problematic files
+// Exclude problematic files and directories
 config.resolver.blacklistRE = /InternalBytecode\.js$/;
+
+// Add transformer configuration to handle problematic files
+config.transformer = {
+  ...config.transformer,
+  minifierConfig: {
+    ...config.transformer.minifierConfig,
+    // Exclude problematic files from minification
+    exclude: [/InternalBytecode\.js$/]
+  }
+};
+
+// Add resolver configuration to ignore problematic files
+config.resolver.resolverMainFields = ['react-native', 'browser', 'main'];
 
 module.exports = config;

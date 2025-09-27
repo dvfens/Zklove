@@ -117,6 +117,13 @@ class VerificationService {
 
       return faceResult;
     } catch (error) {
+      console.error('Face detection error:', error);
+      
+      // Provide a more helpful error message
+      if (error instanceof Error && error.message.includes('digest')) {
+        throw new Error('Face detection failed: Crypto digest function not available. Please ensure polyfills are loaded correctly.');
+      }
+      
       throw new Error(`Face detection failed: ${error instanceof Error ? error.message : error}`);
     }
   }

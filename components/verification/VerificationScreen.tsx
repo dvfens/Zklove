@@ -2,20 +2,20 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import type { ExternalInferenceOptions } from '@/services/MoproZKService';
 import VerificationService, {
-    FaceDetectionResult,
-    IDVerificationResult,
-    VerificationSession,
+  FaceDetectionResult,
+  IDVerificationResult,
+  VerificationSession,
 } from '@/services/VerificationService';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useEffect, useState } from 'react';
 import {
-    Alert,
-    Dimensions,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  Alert,
+  Dimensions,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import FaceCapture from './FaceCapture';
 import IDCapture from './IDCapture';

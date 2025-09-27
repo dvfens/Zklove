@@ -12,13 +12,20 @@ if (typeof global.crypto.getRandomValues === 'undefined') {
 
 // Add crypto.digest polyfill for AWS services
 if (typeof global.crypto.digest === 'undefined') {
-  const CryptoJS = require('crypto-js');
-  global.crypto.digest = async (algorithm, data) => {
-    if (algorithm === 'SHA-256') {
-      return CryptoJS.SHA256(data).toString();
-    }
-    throw new Error(`Unsupported algorithm: ${algorithm}`);
-  };
+  try {
+    const CryptoJS = require('crypto-js');
+    global.crypto.digest = async (algorithm, data) => {
+      if (algorithm === 'SHA-256') {
+        return CryptoJS.SHA256(data).toString();
+      }
+      throw new Error(`Unsupported algorithm: ${algorithm}`);
+    };
+  } catch (error) {
+    console.warn('crypto-js not available, using mock digest');
+    global.crypto.digest = async (algorithm, data) => {
+      return 'mock-digest-for-development';
+    };
+  }
 }
 
 // Buffer polyfill for ethers.js

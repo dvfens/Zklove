@@ -1,6 +1,7 @@
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import VerificationScreen from '@/components/verification/VerificationScreen';
+import DatingScreen from '@/components/dating/DatingScreen';
 import ZkLoveLogo from '@/components/ZkLoveLogo';
 import AppInitializationService from '@/services/AppInitializationService';
 import { VerificationSession } from '@/services/VerificationService';
@@ -10,6 +11,7 @@ import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity } from 'react-nat
 
 export default function HomeScreen() {
   const [showVerification, setShowVerification] = useState(false);
+  const [showDating, setShowDating] = useState(false);
   const [verificationHistory, setVerificationHistory] = useState<VerificationSession[]>([]);
 
   useEffect(() => {
@@ -53,6 +55,14 @@ export default function HomeScreen() {
     );
   }
 
+  if (showDating) {
+    return (
+      <DatingScreen
+        onBack={() => setShowDating(false)}
+      />
+    );
+  }
+
   return (
     <ThemedView style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
@@ -61,7 +71,7 @@ export default function HomeScreen() {
           <ZkLoveLogo size={100} style={styles.logo} />
           <ThemedText style={styles.title}>zkLove</ThemedText>
           <ThemedText style={styles.subtitle}>
-            Advanced Identity Verification System
+            Zero-Knowledge Identity & Privacy-First Dating
           </ThemedText>
         </ThemedView>
 
@@ -116,6 +126,22 @@ export default function HomeScreen() {
               </ThemedText>
             </ThemedView>
           </ThemedView>
+
+          <TouchableOpacity 
+            style={[styles.feature, styles.datingFeature]} 
+            onPress={() => setShowDating(true)}
+          >
+            <ThemedView style={[styles.featureIcon, styles.datingIcon]}>
+              <Ionicons name="heart" size={24} color="#FF6B35" />
+            </ThemedView>
+            <ThemedView style={styles.featureContent}>
+              <ThemedText style={styles.featureTitle}>🚀 Zero-Knowledge Dating</ThemedText>
+              <ThemedText style={styles.featureDescription}>
+                Privacy-first dating with anonymous matching and on-chain verification
+              </ThemedText>
+            </ThemedView>
+            <Ionicons name="arrow-forward" size={20} color="#FF6B35" />
+          </TouchableOpacity>
         </ThemedView>
 
         {/* Verification History */}
@@ -323,5 +349,13 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '600',
     marginLeft: 8,
+  },
+  datingFeature: {
+    borderColor: '#FF6B35',
+    borderWidth: 2,
+    backgroundColor: 'rgba(255, 107, 53, 0.05)',
+  },
+  datingIcon: {
+    backgroundColor: 'rgba(255, 107, 53, 0.1)',
   },
 });

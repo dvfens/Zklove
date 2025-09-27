@@ -93,7 +93,7 @@ class IPFSService {
       const contentStr = typeof content === 'string' ? content : Buffer.from(content).toString('base64');
       
       // Generate IPFS-like hash (in reality, this would be a proper multihash)
-      const hash = this.generateIPFSHash(contentStr);
+      const hash = await this.generateIPFSHash(contentStr);
       const size = contentStr.length;
 
       // Create file object
@@ -282,7 +282,7 @@ class IPFSService {
         metadata: {
           created: new Date().toISOString(),
           creator: 'zkLove_verification_system',
-          integrity: this.calculateManifestHash([faceResult.hash, idResult.hash, proofResult.hash])
+          integrity: await this.calculateManifestHash([faceResult.hash, idResult.hash, proofResult.hash])
         }
       };
 
@@ -381,15 +381,15 @@ class IPFSService {
   }
 
   // Private helper methods
-  private generateIPFSHash(content: string): string {
+  private async generateIPFSHash(content: string): Promise<string> {
     // Generate a hash that looks like an IPFS hash
-    const hash = CryptoJS.SHA256(content).toString();
+    const hash = await Crypto.digestStringAsync(Crypto.CryptoDigestAlgorithm.SHA256, content);
     return `Qm${hash.substring(0, 44)}`; // IPFS hashes typically start with Qm
   }
 
-  private calculateManifestHash(hashes: string[]): string {
+  private async calculateManifestHash(hashes: string[]): Promise<string> {
     const combined = hashes.sort().join('');
-    return CryptoJS.SHA256(combined).toString();
+    return await Crypto.digestStringAsync(Crypto.CryptoDigestAlgorithm.SHA256, combined);
   }
 
   private async storeFile(file: IPFSFile): Promise<void> {

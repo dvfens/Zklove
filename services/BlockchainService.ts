@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ethers } from 'ethers';
+import ConfigService from './ConfigService';
 import MoproZKService, { ZKProof } from './MoproZKService';
 
 // Smart contract ABI for identity verification
@@ -57,8 +58,14 @@ class BlockchainService {
   }
 
   // Initialize blockchain connection
-  async initialize(config: BlockchainConfig): Promise<void> {
+  async initialize(config?: BlockchainConfig): Promise<void> {
     try {
+      // Use provided config or load from ConfigService
+      if (!config) {
+        const configService = ConfigService.getInstance();
+        config = configService.getBlockchainConfig();
+      }
+      
       this.config = config;
       this.provider = new ethers.JsonRpcProvider(config.rpcUrl);
       

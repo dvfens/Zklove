@@ -11,17 +11,23 @@ export default function HomeScreen() {
   const [verificationHistory, setVerificationHistory] = useState<VerificationSession[]>([]);
 
   useEffect(() => {
-    // Configure ML services on app startup
+    // Configure services on app startup using config
     const verificationService = VerificationService.getInstance();
-    verificationService.configureMachineLearning({
-      faceDetectionEndpoint: 'https://api.faceapi.com/detect',
-      documentOcrEndpoint: 'https://api.textract.com/analyze',
-      apiKeys: {
-        faceApi: 'demo-face-api-key',
-        documentApi: 'demo-document-api-key'
-      },
-      timeout: 30000,
-      retryAttempts: 3
+    const ConfigService = require('@/services/ConfigService').default;
+    const configService = ConfigService.getInstance();
+    
+    // Configure ML services with user's API keys
+    const mlConfig = configService.getMLConfig();
+    verificationService.configureMachineLearning(mlConfig);
+    
+    console.log('App configured with:', {
+      mlEnabled: mlConfig.apiKeys.faceApi !== 'your_face_api_key_here',
+      blockchainNetwork: configService.getBlockchainConfig().network,
+      featuresEnabled: {
+        blockchain: configService.isFeatureEnabled('enableBlockchainSubmission'),
+        ipfs: configService.isFeatureEnabled('enableIpfsStorage'),
+        zkProofs: configService.isFeatureEnabled('enableZkProofs')
+      }
     });
   }, []);
 

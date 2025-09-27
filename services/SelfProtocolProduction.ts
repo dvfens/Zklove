@@ -88,12 +88,20 @@ class SelfProtocolProduction {
           return this.parseXMLFormat(qrData);
         case 'raw':
           return this.parseRawFormat(qrData);
+        case 'encrypted':
+          return this.parseEncryptedFormat(qrData);
         default:
           // Try all formats as fallback
           return this.tryAllFormats(qrData);
       }
     } catch (error) {
       console.log('All parsing methods failed:', error);
+      
+      // Check if it's an encrypted QR code error
+      if (error instanceof Error && error.message.includes('Encrypted Aadhaar QR codes')) {
+        throw error; // Re-throw the specific encrypted QR error
+      }
+      
       throw new Error('Unable to parse Aadhaar QR code. Please ensure you\'re scanning a valid Aadhaar QR code from mAadhaar app or UIDAI PDF.');
     }
   }
@@ -117,6 +125,12 @@ class SelfProtocolProduction {
     if (qrData.includes('<') && qrData.includes('>')) {
       console.log('Detected XML format');
       return 'xml';
+    }
+    
+    // Check for encrypted numeric format (physical Aadhaar card QR)
+    if (qrData.length > 1000 && /^\d+$/.test(qrData)) {
+      console.log('Detected encrypted numeric format (physical Aadhaar card)');
+      return 'encrypted';
     }
     
     // Check for base64 format (starts with common base64 chars and is longer)
@@ -202,6 +216,25 @@ class SelfProtocolProduction {
       throw new Error('Failed to parse XML data');
     }
     return xmlData;
+  }
+
+  /**
+   * Parse encrypted format (physical Aadhaar card QR)
+   */
+  parseEncryptedFormat(qrData: string): AadhaarDemographicData {
+    console.log('Parsing encrypted format...');
+    console.log('QR Data length:', qrData.length);
+    console.log('QR Data starts with:', qrData.substring(0, 20));
+    
+    // This is an encrypted Aadhaar QR code from a physical card
+    // We need to decrypt it using UIDAI's encryption algorithm
+    // For now, we'll provide guidance to the user
+    
+    throw new Error(
+      'Encrypted Aadhaar QR codes from physical cards are not supported. ' +
+      'Please use mAadhaar app QR codes or UIDAI PDF QR codes instead. ' +
+      'Physical Aadhaar card QR codes are encrypted and require special decryption.'
+    );
   }
 
   /**
@@ -750,3 +783,4 @@ class SelfProtocolProduction {
 }
 
 export default SelfProtocolProduction;
+

@@ -18,10 +18,18 @@ async function localBuild() {
     // Step 1: Clean previous builds
     console.log('🧹 Cleaning previous builds...');
     if (fs.existsSync('dist')) {
-      execSync('rm -rf dist', { stdio: 'inherit' });
+      if (process.platform === 'win32') {
+        execSync('rmdir /s /q dist', { stdio: 'inherit' });
+      } else {
+        execSync('rm -rf dist', { stdio: 'inherit' });
+      }
     }
     if (fs.existsSync('www')) {
-      execSync('rm -rf www', { stdio: 'inherit' });
+      if (process.platform === 'win32') {
+        execSync('rmdir /s /q www', { stdio: 'inherit' });
+      } else {
+        execSync('rm -rf www', { stdio: 'inherit' });
+      }
     }
     
     // Step 2: Build web version

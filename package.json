@@ -17,7 +17,14 @@
     "build:production": "cross-env NODE_ENV=production expo export --platform all",
     "build:android": "cross-env NODE_ENV=production eas build --platform android --profile production",
     "build:ios": "cross-env NODE_ENV=production eas build --platform ios --profile production",
-    "preview:production": "cross-env NODE_ENV=production expo start --no-dev --minify"
+    "preview:production": "cross-env NODE_ENV=production expo start --no-dev --minify",
+    "build:local": "node local-build.js",
+    "build:local:android": "node local-build.js android",
+    "build:local:android:release": "node local-build.js android release",
+    "build:local:ios": "node local-build.js ios",
+    "build:local:web": "node local-build.js web",
+    "build:gradle:debug": "cd android && ./gradlew assembleDebug",
+    "build:gradle:release": "cd android && ./gradlew assembleRelease"
   },
   "dependencies": {
     "@capacitor/android": "^7.4.3",
@@ -36,7 +43,6 @@
     "crypto-js": "^4.2.0",
     "ethers": "^6.15.0",
     "expo": "~54.0.10",
-    "expo-barcode-scanner": "^13.0.1",
     "expo-blur": "^15.0.7",
     "expo-camera": "^17.0.8",
     "expo-constants": "~18.0.9",

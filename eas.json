@@ -12,6 +12,48 @@
         "gradleCommand": ":app:assembleDebug"
       }
     },
+    "standalone": {
+      "android": {
+        "buildType": "apk",
+        "image": "latest",
+        "gradleCommand": ":app:assembleRelease"
+      }
+    },
+    "production-standalone": {
+      "android": {
+        "buildType": "apk",
+        "image": "latest",
+        "gradleCommand": ":app:assembleRelease"
+      }
+    },
+    "standalone-apk": {
+      "android": {
+        "buildType": "apk",
+        "image": "latest",
+        "gradleCommand": ":app:assembleRelease"
+      }
+    },
+    "standalone": {
+      "android": {
+        "buildType": "apk",
+        "image": "latest",
+        "gradleCommand": ":app:assembleRelease"
+      }
+    },
+    "playstore": {
+      "android": {
+        "buildType": "apk",
+        "image": "latest",
+        "gradleCommand": ":app:assembleRelease"
+      }
+    },
+    "release": {
+      "android": {
+        "buildType": "apk",
+        "image": "latest",
+        "gradleCommand": ":app:assembleRelease"
+      }
+    },
     "preview": {
       "distribution": "internal",
       "android": {
@@ -22,7 +64,33 @@
     "production": {
       "android": {
         "buildType": "apk",
+<<<<<<< HEAD
         "image": "latest"
+=======
+        "image": "latest",
+        "env": {
+          "EXPO_NO_CAPABILITY_SYNC": "1",
+          "EXPO_USE_FAST_RESOLVER": "1"
+        },
+        "cache": {
+          "disabled": true
+        },
+        "gradleCommand": ":app:assembleRelease"
+      }
+    },
+    "production-simple": {
+      "android": {
+        "buildType": "apk",
+        "image": "latest",
+        "gradleCommand": ":app:assembleRelease"
+      }
+    },
+    "production-apk": {
+      "android": {
+        "buildType": "apk",
+        "image": "latest",
+        "gradleCommand": ":app:assembleRelease"
+>>>>>>> 8f1e603ab33d9669a7f0fdcabe0b4b474a20bec4
       }
     }
   },

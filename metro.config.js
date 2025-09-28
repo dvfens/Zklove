@@ -10,6 +10,8 @@ config.resolver.alias = {
   'crypto': 'react-native-crypto-js',
   'stream': 'stream-browserify',
   'buffer': 'buffer',
+  // Add path alias support
+  '@': path.resolve(__dirname, '.'),
 };
 
 // Add crypto and buffer to the list of modules to be resolved

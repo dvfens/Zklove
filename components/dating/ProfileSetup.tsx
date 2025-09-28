@@ -336,7 +336,7 @@ export default function ProfileSetup({ profile, onComplete }: ProfileSetupProps)
           <View style={styles.stepContent}>
             <ThemedText style={styles.stepTitle}>Where are you located?</ThemedText>
             <ThemedText style={styles.stepDescription}>
-              We'll only match you with people in your city for safety and convenience.
+              We&apos;ll only match you with people in your city for safety and convenience.
             </ThemedText>
 
             <TextInput
@@ -362,7 +362,7 @@ export default function ProfileSetup({ profile, onComplete }: ProfileSetupProps)
           <View style={styles.stepContent}>
             <ThemedText style={styles.stepTitle}>What are your interests?</ThemedText>
             <ThemedText style={styles.stepDescription}>
-              Select up to 5 hobbies. We'll match you with people who share your interests.
+              Select up to 5 hobbies. We&apos;ll match you with people who share your interests.
             </ThemedText>
 
             <View style={styles.hobbiesContainer}>

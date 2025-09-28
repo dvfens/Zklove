@@ -30,6 +30,8 @@
         "android.permission.READ_MEDIA_VIDEO",
         "android.permission.READ_MEDIA_AUDIO"
       ],
+      "compileSdkVersion": 34,
+      "targetSdkVersion": 34,
       "package": "com.anonymous.zkLove"
     },
     "web": {
@@ -74,8 +76,9 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "af32e5e8-00ae-4452-9333-a4d02a373c9f"
+        "projectId": "994fe32b-66d9-416e-8f2a-2907ae66ad3d"
       }
-    }
+    },
+    "owner": "dvfens"
   }
 }

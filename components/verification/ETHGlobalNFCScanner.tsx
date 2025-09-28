@@ -199,7 +199,7 @@ export default function ETHGlobalNFCScanner({ onBadgeVerified, onCancel }: ETHGl
 
         <ThemedText style={styles.title}>NFC Not Supported</ThemedText>
         <ThemedText style={styles.subtitle}>
-          Your device doesn't support NFC or NFC is disabled. Please use QR code verification instead.
+          Your device doesn&apos;t support NFC or NFC is disabled. Please use QR code verification instead.
         </ThemedText>
 
         <TouchableOpacity style={styles.cancelButton} onPress={onCancel}>

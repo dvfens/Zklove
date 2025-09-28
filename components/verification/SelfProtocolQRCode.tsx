@@ -4,13 +4,13 @@ import SelfProtocolSDK from '@/services/SelfProtocolSDK';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useEffect, useState } from 'react';
 import {
-    ActivityIndicator,
-    Alert,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View
+  ActivityIndicator,
+  Alert,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
 } from 'react-native';
 
 interface SelfProtocolQRCodeProps {
@@ -44,7 +44,7 @@ export default function SelfProtocolQRCode({
   }, []);
 
   useEffect(() => {
-    let interval: NodeJS.Timeout;
+    let interval: ReturnType<typeof setInterval>;
     
     if (isPolling && sessionId) {
       interval = setInterval(async () => {
@@ -58,7 +58,7 @@ export default function SelfProtocolQRCode({
   }, [isPolling, sessionId]);
 
   useEffect(() => {
-    let timer: NodeJS.Timeout;
+    let timer: ReturnType<typeof setInterval>;
     
     if (timeRemaining > 0 && sessionStatus === 'pending') {
       timer = setInterval(() => {
@@ -163,7 +163,7 @@ export default function SelfProtocolQRCode({
               <ThemedText style={styles.instructionNumberText}>2</ThemedText>
             </View>
             <ThemedText style={styles.instructionText}>
-              Open the Self app and tap "Scan QR Code"
+              Open the Self app and tap &quot;Scan QR Code&quot;
             </ThemedText>
           </View>
 

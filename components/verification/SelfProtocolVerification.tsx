@@ -14,10 +14,12 @@ import {
   TouchableOpacity,
   View
 } from 'react-native';
+import FaceCapture from './FaceCapture';
+import IDCapture from './IDCapture';
 
 // const { width } = Dimensions.get('window');
 
-type SelfVerificationStep = 'intro' | 'qr-code' | 'result';
+type SelfVerificationStep = 'intro' | 'face' | 'id' | 'processing' | 'result';
 
 interface SelfProtocolVerificationProps {
   onComplete: (result: SelfVerificationResult) => void;
@@ -38,6 +40,8 @@ export default function SelfProtocolVerification({
 }: SelfProtocolVerificationProps) {
   const [currentStep, setCurrentStep] = useState<SelfVerificationStep>('intro');
   const [verificationResult, setVerificationResult] = useState<SelfVerificationResult | null>(null);
+  const [faceImage, setFaceImage] = useState<string | null>(null);
+  const [documentImage, setDocumentImage] = useState<string | null>(null);
 
   const selfProtocolService = SelfProtocolService.getInstance();
 

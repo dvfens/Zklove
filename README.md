@@ -224,21 +224,6 @@ We welcome contributions! Please see our [Contributing Guidelines](CONTRIBUTING.
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## 🙏 Acknowledgments
-
-- [Self Protocol](https://selfprotocol.com) for privacy-first identity verification
-- [Expo](https://expo.dev) for the amazing development platform
-- [React Native](https://reactnative.dev) for cross-platform mobile development
-- [IPFS](https://ipfs.io) for decentralized storage
-
-## 📞 Support
-
-- 📧 Email: support@zklove.app
-- 💬 Discord: [Join our community](https://discord.gg/zklove)
-- 📖 Documentation: [docs.zklove.app](https://docs.zklove.app)
-- 🐛 Issues: [GitHub Issues](https://github.com/yourusername/zklove/issues)
-
----
 
 Made with ❤️ for privacy-first connections on Web3.
 

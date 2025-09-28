@@ -17,6 +17,10 @@ const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY;
 const IDENTITY_VERIFICATION_CONTRACT = process.env.IDENTITY_VERIFICATION_CONTRACT;
 const MERKLE_TREE_CONTRACT = process.env.MERKLE_TREE_CONTRACT;
 
+// Development mode configuration
+const IS_DEVELOPMENT = process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test';
+const USE_MOCK_DATA = process.env.USE_MOCK_DATA === 'true' || IS_DEVELOPMENT;
+
 // Self Protocol Configuration
 const SELF_PROTOCOL_API_KEY = process.env.SELF_PROTOCOL_API_KEY;
 const SELF_PROTOCOL_SECRET_KEY = process.env.SELF_PROTOCOL_SECRET_KEY;
@@ -85,6 +89,9 @@ export const config = {
       merkleTree: MERKLE_TREE_CONTRACT || '0x1234567890123456789012345678901234567890',
       zkDating: process.env.ZK_DATING_CONTRACT || '0x8ba1f109551bD432803012645Hac136c8f4c7A6e'
     },
+    
+    // Use mock mode when blockchain is unavailable
+    useMockBlockchain: true,
     
     gas: {
       maxGasPrice: '20000000000', // 20 gwei
@@ -204,14 +211,14 @@ export const config = {
   // FEATURE FLAGS - Enable/disable features
   // =============================================================================
   features: {
-    enableBlockchainSubmission: true,
-    enableIpfsStorage: true,
+    enableBlockchainSubmission: !USE_MOCK_DATA,
+    enableIpfsStorage: !USE_MOCK_DATA,
     enableBiometricMatching: true,
     enableLivenessDetection: true,
     enableDocumentVerification: true,
-    enableZkProofs: true,
-    enableWalletIntegration: true,
-    enableSelfProtocol: true
+    enableZkProofs: !USE_MOCK_DATA,
+    enableWalletIntegration: !USE_MOCK_DATA,
+    enableSelfProtocol: !USE_MOCK_DATA
   },
 
   // =============================================================================

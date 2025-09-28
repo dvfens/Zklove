@@ -46,4 +46,22 @@ if (typeof global.fetch === 'undefined') {
   console.log('Using React Native fetch');
 }
 
+// React 19 compiler runtime polyfill
+if (typeof global.ReactCompilerRuntime === 'undefined') {
+  try {
+    // Use our shim for React compiler runtime
+    const ReactCompilerRuntime = require('./react-compiler-runtime-shim.js');
+    global.ReactCompilerRuntime = ReactCompilerRuntime;
+  } catch (error) {
+    // Fallback: create a minimal polyfill
+    console.warn('React compiler runtime not available, using polyfill');
+    global.ReactCompilerRuntime = {
+      c: (fn, deps) => fn,
+      use: (value) => value,
+      useMemo: (fn, deps) => fn(),
+      useCallback: (fn, deps) => fn,
+    };
+  }
+}
+
 console.log('Essential blockchain polyfills loaded successfully');

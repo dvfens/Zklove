@@ -1,4 +1,5 @@
 const { getDefaultConfig } = require('expo/metro-config');
+const path = require('path');
 
 /** @type {import('expo/metro-config').MetroConfig} */
 const config = getDefaultConfig(__dirname);
@@ -8,13 +9,9 @@ config.resolver.alias = {
   ...config.resolver.alias,
   'crypto': 'react-native-crypto-js',
   'stream': 'stream-browserify',
-<<<<<<< HEAD
-  'buffer': 'buffer'
-=======
   'buffer': 'buffer',
   // Add path alias support
   '@': path.resolve(__dirname, '.'),
->>>>>>> 8f1e603ab33d9669a7f0fdcabe0b4b474a20bec4
 };
 
 // Handle node modules that need polyfills

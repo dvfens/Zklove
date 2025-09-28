@@ -127,7 +127,7 @@ export default function DatingScreen({ onBack }: DatingScreenProps) {
   const loadCandidates = async () => {
     try {
       // In a real app, this would fetch potential matches from the contract
-      // For now, we'll generate mock candidates
+      // For now, we'll generate mock candidates with more variety
       const mockCandidates: AnonymousCard[] = [
         {
           id: '0x1234567890123456789012345678901234567890',
@@ -166,6 +166,71 @@ export default function DatingScreen({ onBack }: DatingScreenProps) {
             bio: 40,
             avatar: 60,
             contact: 80
+          }
+        },
+        {
+          id: '0x4567890123456789012345678901234567890123',
+          cityMatch: false,
+          sharedHobbyCount: 1,
+          compatibilityScore: 65,
+          estimatedAge: '28-32',
+          auraRequiredToUnlock: {
+            basic: 25,
+            bio: 50,
+            avatar: 75,
+            contact: 100
+          }
+        },
+        {
+          id: '0x5678901234567890123456789012345678901234',
+          cityMatch: true,
+          sharedHobbyCount: 5,
+          compatibilityScore: 95,
+          estimatedAge: '24-28',
+          auraRequiredToUnlock: {
+            basic: 15,
+            bio: 30,
+            avatar: 45,
+            contact: 60
+          }
+        },
+        {
+          id: '0x6789012345678901234567890123456789012345',
+          cityMatch: true,
+          sharedHobbyCount: 2,
+          compatibilityScore: 78,
+          estimatedAge: '26-31',
+          auraRequiredToUnlock: {
+            basic: 20,
+            bio: 40,
+            avatar: 60,
+            contact: 80
+          }
+        },
+        {
+          id: '0x7890123456789012345678901234567890123456',
+          cityMatch: false,
+          sharedHobbyCount: 3,
+          compatibilityScore: 82,
+          estimatedAge: '23-27',
+          auraRequiredToUnlock: {
+            basic: 20,
+            bio: 40,
+            avatar: 60,
+            contact: 80
+          }
+        },
+        {
+          id: '0x8901234567890123456789012345678901234567',
+          cityMatch: true,
+          sharedHobbyCount: 1,
+          compatibilityScore: 58,
+          estimatedAge: '29-35',
+          auraRequiredToUnlock: {
+            basic: 30,
+            bio: 60,
+            avatar: 90,
+            contact: 120
           }
         }
       ];
@@ -291,7 +356,10 @@ export default function DatingScreen({ onBack }: DatingScreenProps) {
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.gradient}>
+      <LinearGradient
+        colors={['#FF6B35', '#F7931E']}
+        style={styles.gradient}
+      >
         {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity onPress={onBack} style={styles.backButton}>

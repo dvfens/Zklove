@@ -1,5 +1,4 @@
 const { getDefaultConfig } = require('expo/metro-config');
-const path = require('path');
 
 /** @type {import('expo/metro-config').MetroConfig} */
 const config = getDefaultConfig(__dirname);
@@ -9,23 +8,16 @@ config.resolver.alias = {
   ...config.resolver.alias,
   'crypto': 'react-native-crypto-js',
   'stream': 'stream-browserify',
-  'buffer': 'buffer',
-  // Create a mock InternalBytecode.js to prevent errors
-  'InternalBytecode.js': path.resolve(__dirname, 'mock-internal-bytecode.js'),
-  // Fix React 19 compiler runtime import
-  'react/compiler-runtime': path.resolve(__dirname, 'react-compiler-runtime-shim.js')
+  'buffer': 'buffer'
 };
-
-// Add crypto and buffer to the list of modules to be resolved
-config.resolver.platforms = ['ios', 'android', 'native', 'web'];
 
 // Handle node modules that need polyfills
 config.resolver.resolverMainFields = ['react-native', 'browser', 'main'];
 
-// Fix for InternalBytecode.js issue
-config.resolver.sourceExts = [...config.resolver.sourceExts, 'js', 'jsx', 'ts', 'tsx'];
+// Add crypto and buffer to the list of modules to be resolved
+config.resolver.platforms = ['ios', 'android', 'native', 'web'];
 
-// Exclude problematic files and directories
+// Fix for InternalBytecode.js issue - exclude it completely
 config.resolver.blacklistRE = /InternalBytecode\.js$/;
 
 // Add transformer configuration to handle problematic files

@@ -73,10 +73,7 @@ export default function OnboardingScreen({ onComplete }: OnboardingScreenProps) 
 
   return (
     <SafeAreaView style={styles.container}>
-      <LinearGradient
-        colors={['#1a1a2e', '#16213e', '#0f3460']}
-        style={styles.gradient}
-      >
+      <View style={styles.gradient}>
         {/* Skip Button */}
         <TouchableOpacity style={styles.skipButton} onPress={skip}>
           <Text style={styles.skipText}>Skip</Text>
@@ -177,7 +174,7 @@ export default function OnboardingScreen({ onComplete }: OnboardingScreenProps) 
         <View style={styles.navigation}>
           {currentStep > 0 && (
             <TouchableOpacity style={styles.backButton} onPress={prevStep}>
-              <Ionicons name="arrow-back" size={20} color="#FFFFFF" />
+              <Ionicons name="arrow-back" size={20} color="#333333" />
               <Text style={styles.backButtonText}>Back</Text>
             </TouchableOpacity>
           )}
@@ -197,7 +194,7 @@ export default function OnboardingScreen({ onComplete }: OnboardingScreenProps) 
             Your privacy is protected by zero-knowledge cryptography
           </Text>
         </View>
-      </LinearGradient>
+      </View>
     </SafeAreaView>
   );
 }
@@ -209,6 +206,7 @@ const styles = StyleSheet.create({
   gradient: {
     flex: 1,
     paddingHorizontal: 20,
+    backgroundColor: '#FFFFFF',
   },
   skipButton: {
     position: 'absolute',
@@ -218,7 +216,7 @@ const styles = StyleSheet.create({
     padding: 10,
   },
   skipText: {
-    color: '#FFFFFF',
+    color: '#666666',
     fontSize: 16,
     opacity: 0.7,
   },
@@ -232,7 +230,7 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    backgroundColor: 'rgba(0, 0, 0, 0.2)',
     marginHorizontal: 6,
   },
   activeStepDot: {
@@ -296,14 +294,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   highlightText: {
-    color: '#FFFFFF',
+    color: '#333333',
     fontSize: 14,
     marginLeft: 12,
     opacity: 0.8,
   },
   auraExample: {
     width: '100%',
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    backgroundColor: 'rgba(0, 0, 0, 0.05)',
     borderRadius: 16,
     padding: 20,
     marginTop: 20,
@@ -315,8 +313,9 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   auraAction: {
-    color: '#FFFFFF',
+    color: '#333333',
     fontSize: 14,
+    fontWeight: '500',
   },
   auraPoints: {
     color: '#00C851',
@@ -345,12 +344,15 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 20,
     borderRadius: 12,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: 'rgba(0, 0, 0, 0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(0, 0, 0, 0.2)',
   },
   backButtonText: {
-    color: '#FFFFFF',
+    color: '#333333',
     fontSize: 16,
     marginLeft: 8,
+    fontWeight: '600',
   },
   nextButton: {
     flexDirection: 'row',
@@ -378,9 +380,9 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
   },
   privacyText: {
-    color: '#FFFFFF',
+    color: '#666666',
     fontSize: 12,
-    opacity: 0.6,
+    opacity: 0.8,
     marginLeft: 8,
   },
 });

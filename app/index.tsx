@@ -163,9 +163,9 @@ export default function HomeScreen() {
             <ThemedView style={[styles.featureIcon, styles.datingIcon]}>
               <Ionicons name="heart" size={24} color="#FF6B35" />
             </ThemedView>
-            <ThemedView style={styles.featureContent}>
-              <ThemedText style={styles.featureTitle}>🚀 Zero-Knowledge Dating</ThemedText>
-              <ThemedText style={styles.featureDescription}>
+            <ThemedView style={[styles.featureContent, { backgroundColor: 'transparent' }]}>
+              <ThemedText style={[styles.featureTitle, styles.datingTitle]}>🚀 Zero-Knowledge Dating</ThemedText>
+              <ThemedText style={[styles.featureDescription, styles.datingDescription]}>
                 Privacy-first dating with anonymous matching and on-chain verification
               </ThemedText>
               {verificationHistory.length === 0 && (
@@ -174,7 +174,9 @@ export default function HomeScreen() {
                 </ThemedText>
               )}
             </ThemedView>
-            <Ionicons name="arrow-forward" size={20} color="#FF6B35" />
+            <ThemedView style={[styles.datingArrow, { backgroundColor: 'rgba(255, 107, 53, 0.1)' }]}>
+              <Ionicons name="arrow-forward" size={20} color="#FF6B35" />
+            </ThemedView>
           </TouchableOpacity>
         </ThemedView>
 
@@ -324,6 +326,7 @@ const styles = StyleSheet.create({
   featureContent: {
     flex: 1,
     marginLeft: 16,
+    backgroundColor: 'transparent',
   },
   featureTitle: {
     fontSize: 16,
@@ -421,15 +424,45 @@ const styles = StyleSheet.create({
   datingFeature: {
     borderColor: '#FF6B35',
     borderWidth: 2,
-    backgroundColor: 'rgba(255, 107, 53, 0.05)',
+    backgroundColor: 'rgba(255, 107, 53, 0.08)',
+    shadowColor: '#FF6B35',
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 6,
+    transform: [{ scale: 1.02 }],
   },
   datingIcon: {
-    backgroundColor: 'rgba(255, 107, 53, 0.1)',
+    backgroundColor: 'rgba(255, 107, 53, 0.15)',
+    borderWidth: 1,
+    borderColor: '#FF6B35',
   },
   requiresVerification: {
     fontSize: 12,
     color: '#FFB800',
     marginTop: 5,
     fontWeight: '600',
+  },
+  datingTitle: {
+    color: '#FF6B35',
+    fontWeight: '700',
+    fontSize: 17,
+    backgroundColor: 'transparent',
+  },
+  datingDescription: {
+    color: '#333',
+    fontWeight: '500',
+    fontSize: 15,
+    lineHeight: 20,
+    backgroundColor: 'transparent',
+  },
+  datingArrow: {
+    borderRadius: 20,
+    padding: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 107, 53, 0.3)',
   },
 });

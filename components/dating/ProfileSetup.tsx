@@ -5,7 +5,6 @@ import ZKProofService from '@/services/ZKProofService';
 import type { DatingProfile, Hobby } from '@/types/dating';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
-import { LinearGradient } from 'expo-linear-gradient';
 import React, { useEffect, useState } from 'react';
 import {
     ActivityIndicator,
@@ -255,28 +254,46 @@ export default function ProfileSetup({ profile, onComplete }: ProfileSetupProps)
   };
 
   const renderStepIndicator = () => (
-    <View style={styles.stepIndicator}>
-      {steps.map((step, index) => (
-        <View key={index} style={styles.stepItem}>
-          <View style={[
-            styles.stepCircle,
-            index === currentStep && styles.activeStepCircle,
-            index < currentStep && styles.completedStepCircle
-          ]}>
-            <Ionicons
-              name={step.icon as any}
-              size={16}
-              color={index <= currentStep ? '#FFFFFF' : '#666'}
-            />
-          </View>
-          <Text style={[
-            styles.stepText,
-            index === currentStep && styles.activeStepText
-          ]}>
-            {step.title}
-          </Text>
+    <View style={styles.header}>
+      {/* Header with zkLove logo */}
+      <View style={styles.headerTop}>
+        <TouchableOpacity style={styles.backButtonHeader}>
+          <Ionicons name="arrow-back" size={24} color="#333333" />
+        </TouchableOpacity>
+        <View style={styles.logoContainer}>
+          <Text style={styles.logoText}>zkLove</Text>
+          <Text style={styles.logoSubtext}>Privacy-First Dating</Text>
         </View>
-      ))}
+        <View style={styles.auraContainer}>
+          <Ionicons name="star" size={16} color="#FFB800" />
+          <Text style={styles.auraText}>0 Aura</Text>
+        </View>
+      </View>
+      
+      {/* Step indicators */}
+      <View style={styles.stepIndicator}>
+        {steps.map((step, index) => (
+          <View key={index} style={styles.stepItem}>
+            <View style={[
+              styles.stepCircle,
+              index === currentStep && styles.activeStepCircle,
+              index < currentStep && styles.completedStepCircle
+            ]}>
+              <Ionicons
+                name={step.icon as any}
+                size={16}
+                color={index === currentStep ? '#FFFFFF' : index < currentStep ? '#FFFFFF' : '#666666'}
+              />
+            </View>
+            <Text style={[
+              styles.stepText,
+              index === currentStep && styles.activeStepText
+            ]}>
+              {step.title}
+            </Text>
+          </View>
+        ))}
+      </View>
     </View>
   );
 
@@ -495,10 +512,7 @@ export default function ProfileSetup({ profile, onComplete }: ProfileSetupProps)
       style={styles.container} 
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-      <LinearGradient
-        colors={['#1a1a2e', '#16213e', '#0f3460']}
-        style={styles.gradient}
-      >
+      <View style={styles.gradient}>
         {renderStepIndicator()}
         
         <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
@@ -508,7 +522,7 @@ export default function ProfileSetup({ profile, onComplete }: ProfileSetupProps)
         <View style={styles.buttonContainer}>
           {currentStep > 0 && (
             <TouchableOpacity style={styles.backButton} onPress={prevStep}>
-              <Ionicons name="arrow-back" size={20} color="#FFFFFF" />
+              <Ionicons name="arrow-back" size={20} color="#333333" />
               <Text style={styles.backButtonText}>Back</Text>
             </TouchableOpacity>
           )}
@@ -522,7 +536,13 @@ export default function ProfileSetup({ profile, onComplete }: ProfileSetupProps)
             )}
           </TouchableOpacity>
         </View>
-      </LinearGradient>
+        
+        {/* Privacy Notice */}
+        <View style={styles.privacyNotice}>
+          <Ionicons name="shield-checkmark" size={16} color="#00C851" />
+          <Text style={styles.privacyNoticeText}>Zero-Knowledge Protected</Text>
+        </View>
+      </View>
     </KeyboardAvoidingView>
   );
 }
@@ -533,6 +553,7 @@ const styles = StyleSheet.create({
   },
   gradient: {
     flex: 1,
+    backgroundColor: '#FFFFFF',
   },
   loadingContainer: {
     flex: 1,
@@ -552,12 +573,53 @@ const styles = StyleSheet.create({
     marginTop: 10,
     textAlign: 'center',
   },
+  header: {
+    backgroundColor: '#FFFFFF',
+    paddingTop: 60,
+    paddingBottom: 20,
+  },
+  headerTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    marginBottom: 20,
+  },
+  backButtonHeader: {
+    padding: 8,
+  },
+  logoContainer: {
+    alignItems: 'center',
+    flex: 1,
+  },
+  logoText: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#333333',
+  },
+  logoSubtext: {
+    fontSize: 12,
+    color: '#666666',
+    marginTop: 2,
+  },
+  auraContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFB800',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+  },
+  auraText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: 'bold',
+    marginLeft: 4,
+  },
   stepIndicator: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     paddingHorizontal: 20,
-    paddingTop: 60,
-    paddingBottom: 20,
   },
   stepItem: {
     alignItems: 'center',
@@ -567,7 +629,7 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: '#333',
+    backgroundColor: '#E0E0E0',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 8,
@@ -580,16 +642,17 @@ const styles = StyleSheet.create({
   },
   stepText: {
     fontSize: 10,
-    color: '#666',
+    color: '#666666',
     textAlign: 'center',
   },
   activeStepText: {
-    color: '#FFFFFF',
+    color: '#FF6B35',
     fontWeight: 'bold',
   },
   content: {
     flex: 1,
     paddingHorizontal: 20,
+    backgroundColor: '#FFFFFF',
   },
   stepContent: {
     flex: 1,
@@ -600,6 +663,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginBottom: 10,
     textAlign: 'center',
+    color: '#333333',
   },
   stepDescription: {
     fontSize: 16,
@@ -607,6 +671,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: 30,
     lineHeight: 22,
+    color: '#666666',
   },
   avatarContainer: {
     alignSelf: 'center',
@@ -616,11 +681,11 @@ const styles = StyleSheet.create({
     width: 120,
     height: 120,
     borderRadius: 60,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: '#F8F8F8',
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 2,
-    borderColor: '#666',
+    borderColor: '#E0E0E0',
     borderStyle: 'dashed',
   },
   avatarPreview: {
@@ -637,14 +702,14 @@ const styles = StyleSheet.create({
     marginTop: 5,
   },
   input: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: '#F8F8F8',
     borderRadius: 12,
     padding: 15,
     marginBottom: 15,
     fontSize: 16,
-    color: '#FFFFFF',
+    color: '#333333',
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
+    borderColor: '#E0E0E0',
   },
   bioInput: {
     height: 100,
@@ -752,8 +817,23 @@ const styles = StyleSheet.create({
   buttonContainer: {
     flexDirection: 'row',
     paddingHorizontal: 20,
-    paddingBottom: 40,
+    paddingBottom: 20,
     paddingTop: 20,
+    backgroundColor: '#FFFFFF',
+  },
+  privacyNotice: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#00C851',
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+  },
+  privacyNoticeText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
+    marginLeft: 8,
   },
   backButton: {
     flex: 1,
@@ -762,11 +842,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingVertical: 15,
     borderRadius: 12,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: '#F8F8F8',
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
     marginRight: 10,
   },
   backButtonText: {
-    color: '#FFFFFF',
+    color: '#333333',
     fontSize: 16,
     fontWeight: '600',
     marginLeft: 5,

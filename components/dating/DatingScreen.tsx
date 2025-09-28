@@ -291,14 +291,11 @@ export default function DatingScreen({ onBack }: DatingScreenProps) {
 
   return (
     <SafeAreaView style={styles.container}>
-      <LinearGradient
-        colors={['#1a1a2e', '#16213e', '#0f3460']}
-        style={styles.gradient}
-      >
+      <View style={styles.gradient}>
         {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity onPress={onBack} style={styles.backButton}>
-            <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
+            <Ionicons name="arrow-back" size={24} color="#333333" />
           </TouchableOpacity>
           
           <View style={styles.headerCenter}>
@@ -377,6 +374,7 @@ const styles = StyleSheet.create({
   },
   gradient: {
     flex: 1,
+    backgroundColor: '#FFFFFF',
   },
   loadingContainer: {
     flex: 1,
@@ -419,11 +417,11 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#FFFFFF',
+    color: '#333333',
   },
   headerSubtitle: {
     fontSize: 12,
-    color: '#CCCCCC',
+    color: '#666666',
     marginTop: 2,
   },
   tabContainer: {

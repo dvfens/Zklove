@@ -4,7 +4,6 @@ import ZKDatingService from '@/services/ZKDatingService';
 import type { AuraTransaction, Match } from '@/types/dating';
 import { Ionicons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
-import { LinearGradient } from 'expo-linear-gradient';
 import React, { useEffect, useState } from 'react';
 import {
     ActivityIndicator,
@@ -156,15 +155,12 @@ export default function MatchesScreen() {
         style={styles.matchCard}
         onPress={() => setSelectedMatch(match)}
       >
-        <LinearGradient
-          colors={['#1a1a2e', '#16213e']}
-          style={styles.matchCardGradient}
-        >
+        <View style={styles.matchCardGradient}>
           {/* Match Header */}
           <View style={styles.matchHeader}>
             <View style={styles.matchInfo}>
               <BlurView intensity={80} style={styles.avatarBlur}>
-                <Ionicons name="person" size={40} color="#FFFFFF" opacity={0.3} />
+                <Ionicons name="person" size={40} color="#666666" opacity={0.6} />
               </BlurView>
               <View style={styles.matchDetails}>
                 <Text style={styles.matchTitle}>
@@ -283,7 +279,7 @@ export default function MatchesScreen() {
           <Text style={styles.matchDate}>
             Matched {new Date(match.matchedAt).toLocaleDateString()}
           </Text>
-        </LinearGradient>
+        </View>
       </TouchableOpacity>
     );
   };
@@ -431,6 +427,10 @@ const styles = StyleSheet.create({
   },
   matchCardGradient: {
     padding: 20,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
   },
   matchHeader: {
     flexDirection: 'row',
@@ -456,15 +456,15 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   matchTitle: {
-    color: '#FFFFFF',
+    color: '#333333',
     fontSize: 18,
     fontWeight: 'bold',
     marginBottom: 2,
   },
   matchSubtitle: {
-    color: '#FFFFFF',
+    color: '#666666',
     fontSize: 14,
-    opacity: 0.7,
+    opacity: 0.8,
   },
   matchStatus: {
     alignItems: 'flex-end',

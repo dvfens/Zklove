@@ -4,7 +4,6 @@ import ZKDatingService from '@/services/ZKDatingService';
 import ZKProofService from '@/services/ZKProofService';
 import type { AnonymousCard, DatingProfile } from '@/types/dating';
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
 import React, { useEffect, useState } from 'react';
 import {
     ActivityIndicator,
@@ -363,7 +362,7 @@ export default function DatingScreen({ onBack }: DatingScreenProps) {
           <Ionicons name="shield-checkmark" size={16} color="#00C851" />
           <Text style={styles.zkText}>Zero-Knowledge Protected</Text>
         </View>
-      </LinearGradient>
+      </View>
     </SafeAreaView>
   );
 }

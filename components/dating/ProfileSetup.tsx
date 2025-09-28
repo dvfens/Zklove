@@ -749,11 +749,12 @@ const styles = StyleSheet.create({
     borderColor: '#FF6B35',
   },
   hobbyText: {
-    color: '#FFFFFF',
+    color: '#333333',
     fontSize: 14,
   },
   selectedHobbyText: {
     fontWeight: 'bold',
+    color: '#FFFFFF',
   },
   selectionCount: {
     color: '#666',
@@ -770,23 +771,23 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   ageLabel: {
-    color: '#FFFFFF',
+    color: '#333333',
     fontSize: 14,
     marginBottom: 10,
   },
   ageInput: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: '#F8F8F8',
     borderRadius: 12,
     padding: 15,
     fontSize: 16,
-    color: '#FFFFFF',
+    color: '#333333',
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
+    borderColor: '#E0E0E0',
     width: 80,
     textAlign: 'center',
   },
   ageSeparator: {
-    color: '#FFFFFF',
+    color: '#666666',
     fontSize: 16,
     marginHorizontal: 20,
   },

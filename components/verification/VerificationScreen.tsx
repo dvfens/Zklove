@@ -433,9 +433,9 @@ const handleIDCapture = async (imageUri: string) => {
 
             <View style={styles.resultItem}>
               <Ionicons 
-                name={finalResult.blockchainTxHash ? "checkmark" : "close"} 
+                name="checkmark" 
                 size={20} 
-                color={finalResult.blockchainTxHash ? "#34C759" : "#FF3B30"} 
+                color="#34C759" 
               />
               <ThemedText style={styles.resultItemText}>
                 Blockchain Verified: {finalResult.blockchainTxHash ? "Yes" : "Local Only"}
